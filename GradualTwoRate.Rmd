@@ -2,3 +2,35 @@
 title: "Do small errors lead to more implicit motor adaptation?"
 output: html_notebook
 ---
+
+In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually leads to more implicit learning. In 5 groups of people, including a cohort of participants with mid cerebellar damage, and older participanrs (age-matched controls) doing various paradigms in within-subject designs, we still failed to confirm this.
+
+The data for this project is available from OSF.
+
+This RStudio Project uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. This probably took some time when starting this up. It also means that all those packages are installed in the project folder, so after being done with the project, you might want to free up some disk space by removing it.
+
+Then we access all our custom functions:
+
+```{r}
+# this is for getting the data from OSF:
+source('R/data.R')
+
+# this is for (pre)processing the raw data:
+source('R/process.R')
+
+# this function provides access to demographics about the participants:
+source('R/participants.R')
+
+# here we set the colors and other style elements to be used in plots:
+source('R/style.R')
+
+# this has functions to make figures:
+source('R/figures.R')
+
+# this file has functions that reproduce the statistical analyses:
+source('R/statistics.R')
+```
+
+
+Notes: for the Munich data, check: "/home/marius/Science/StepGradual/ana".
+
