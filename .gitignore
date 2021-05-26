@@ -1,6 +1,7 @@
 *.mat
 *.pdf
 *.html
+*.nb.html
 
 # History files
 .Rhistory
