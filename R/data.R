@@ -12,18 +12,41 @@ sort30s <- function() {
   for (ppno in participants) {
     
     for (condition in c('abrupt','gradual')) {
-      
-      filename <- sprintf('data/young30/%d/p%02d_%s_selected.txt', ppno, ppno, condition)
-      
+      #cat(sprintf('%d - %s\n',ppno, condition))
+      filename <- sprintf('data/ORG_data/young30org/%d/p%02d_%s_selected.txt', ppno, ppno, condition)
+      # print(filename)
       df <- read.table(filename)
       
       colnames(df) <- c("phase", "task_name", "trial_type", "trial_num", "terminalfeedback", "rotation_angle", "targetangle_deg", "targetdistance_percmax", "homex_px", "homey_px", "targetx_px", "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", "cursory_px", "trial", "selected", "reachsamples", "NA1", "max_velocity", "NA2")
+      #print(which(names(df) == 'time_s'))
       
-      df <- df[c("phase",  "trial", "rotation_angle", "targetangle_deg", "targetx_px", "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", "cursory_px", "selected", "max_velocity")]
+      # monitor resolution: 1680 x 1050
+      # screen size: 433.5 x 271 mm
+      # tablet size: 311   x 216 mm
+      #             0.717    0.797
       
-      filename <- sprintf('data/young30/young30_p%02d_%s.csv', ppno, condition)
+      # --> SOUNDS LIKE 72%
       
-      write.csv(df, filename, row.names = F)
+      ppc <- 38.754789272
+      ppc <- ppc / 0.72
+      ppc <- ppc / 18.3333333333
+      #ppc <- 1
+      df$targetx_cm <- round(df$targetx_px / ppc, digits=3)
+      df$targety_cm <- round(df$targety_px / ppc, digits=3)
+      df$mousex_cm  <- round(df$mousex_px / ppc, digits=3)
+      df$mousey_cm  <- round(df$mousey_px / ppc, digits=3)
+      df$cursorx_cm <- round(df$cursorx_px / ppc, digits=3)
+      df$cursory_cm <- round(df$cursory_px / ppc, digits=3)
+      
+      # print(df$targetx_px[1])
+      # print(df$targetx_cm[1])
+      
+      df <- df[c("phase",  "trial", "rotation_angle", "targetangle_deg", "targetx_cm", "targety_cm", "time_s", "mousex_cm", "mousey_cm", "cursorx_cm", "cursory_cm", "selected", "max_velocity")]
+      
+      df$time_s <- round(df$time_s / 1000, digits=3)
+      
+      filename <- sprintf('data/young30/young30_p%03d_%s.csv', ppno, condition)
+      write.csv(standardNames(df), filename, row.names = F)
       
     }
     
@@ -41,7 +64,7 @@ sort60s <- function() {
     
     for (condition in c('abrupt','gradual')) {
       
-      filename <- sprintf('data/young60/p%02d_%s_selected.csv', ppno, condition)
+      filename <- sprintf('data/ORG_data/young60org/p%02d_%s_selected.csv', ppno, condition)
       
       df <- read.csv(filename)
 
@@ -66,12 +89,25 @@ sort60s <- function() {
                         "selected",
                         "max_velocity")
       
-
-      df <- df[c("phase",  "trial", "rotation_angle", "targetangle_deg", "targetx_px", "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", "cursory_px", "selected", "max_velocity")]
+      # monitor resolution: 1680 x 1050
+      ppc <- 38.754789272
+      ppc <- ppc / 0.72
+      df$targetx_cm <- round(df$targetx_px / ppc, digits=3)
+      df$targety_cm <- round(df$targety_px / ppc, digits=3)
+      df$mousex_cm  <- round(df$mousex_px / ppc, digits=3)
+      df$mousey_cm  <- round(df$mousey_px / ppc, digits=3)
+      df$cursorx_cm <- round(df$cursorx_px / ppc, digits=3)
+      df$cursory_cm <- round(df$cursory_px / ppc, digits=3)
       
-      filename <- sprintf('data/young60/young60_p%02d_%s.csv', ppno, condition)
+      df <- df[c("phase",  "trial", "rotation_angle", "targetangle_deg", "targetx_cm", "targety_cm", "time_s", "mousex_cm", "mousey_cm", "cursorx_cm", "cursory_cm", "selected", "max_velocity")]
       
-      write.csv(df, filename, row.names = F)
+      #df <- df[c("phase",  "trial", "rotation_angle", "targetangle_deg", "targetx_px", "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", "cursory_px", "selected", "max_velocity")]
+      
+      df$time_s <- round(df$time_s, digits=3)
+      
+      filename <- sprintf('data/young60/young60_p%03d_%s.csv', ppno+100, condition)
+      
+      write.csv(standardNames(df), filename, row.names = F)
       
     }
     
@@ -93,10 +129,10 @@ downsampleMatlab2CSV <- function() {
   # get rotations from model
   
   if (!dir.exists('data/older45'))  { dir.create('data/older45',recursive=T) }
-  if (!dir.exists('data/ataxic45')) { dir.create('data/ataxic45',recursive=T) }
+  if (!dir.exists('data/mcebat45')) { dir.create('data/mcebat45',recursive=T) }
   
   # here is a list of participants:
-  participants <- read.csv('/home/marius/Science/StepGradual/Data/participant_list.csv', stringsAsFactors = F)
+  participants <- read.csv('/home/marius/Science/StepGradual/Data/participant_list_2.csv', stringsAsFactors = F)
   
   # we'll down/re-sample all signals to 60 Hz, to be more or less compatible with the other files
   N <- nrow(participants)
@@ -112,12 +148,13 @@ downsampleMatlab2CSV <- function() {
     if (diagnosis == 'control') {
       group <- 'older45'
     } else {
-      group <- 'ataxic45'
+      group <- 'mcebat45'
     }
     
     if (!(version %in% c(2,3,4,5))) {
       next
     }
+    #if (participant != 'ShSh') { next }
     print(participant)
     print(version)
     print(group)
@@ -171,27 +208,39 @@ downsampleMatlab2CSV <- function() {
       time_s <- seq(0,max(dat_time),1/60)
 
       # mouse x
-      smspl <- smooth.spline(x = dat_time,
-                             y = dat_penx)
-      stylusx_cm <- predict(smspl, x=time_s)$y
+      # smspl <- smooth.spline(x = dat_time,
+      #                        y = dat_penx)
+      # stylusx_cm <- predict(smspl, x=time_s)$y
+      stylusx_cm <- approx(x = dat_time,
+                           y = dat_penx,
+                           xout = time_s)$y
       stylusx_cm <- round(stylusx_cm, digits=digits)
 
       # mouse y
-      smspl <- smooth.spline(x = dat_time,
-                             y = dat_peny)
-      stylusy_cm <- predict(smspl, x=time_s)$y
+      # smspl <- smooth.spline(x = dat_time,
+      #                        y = dat_peny)
+      # stylusy_cm <- predict(smspl, x=time_s)$y
+      stylusy_cm <- approx(x = dat_time,
+                           y = dat_peny,
+                           xout = time_s)$y
       stylusy_cm <- round(stylusy_cm, digits=digits)
       
       # cursor x
-      smspl <- smooth.spline(x = dat_time,
-                             y = dat_curx)
-      cursorx_cm <- predict(smspl, x=time_s)$y
+      # smspl <- smooth.spline(x = dat_time,
+      #                        y = dat_curx)
+      # cursorx_cm <- predict(smspl, x=time_s)$y
+      cursorx_cm <- approx(x = dat_time,
+                           y = dat_curx,
+                           xout = time_s)$y
       cursorx_cm <- round(cursorx_cm, digits=digits)
       
       # cursor y
-      smspl <- smooth.spline(x = dat_time,
-                             y = dat_cury)
-      cursory_cm <- predict(smspl, x=time_s)$y
+      # smspl <- smooth.spline(x = dat_time,
+      #                        y = dat_cury)
+      # cursory_cm <- predict(smspl, x=time_s)$y
+      cursory_cm <- approx(x = dat_time,
+                           y = dat_cury,
+                           xout = time_s)$y
       cursory_cm <- round(cursory_cm, digits=digits)
       
       # make new data frame for the trial
@@ -217,6 +266,263 @@ downsampleMatlab2CSV <- function() {
     }
 
     write.csv(output, sprintf('data/%s/%s.csv', group, participant), row.names = F)
+    
+  }
+  
+}
+
+getTorontoControls <- function() {
+  
+  sourcedir <- '/home/marius/Science/StepGradual/ctrl/data/combined'
+  
+  columns <- c('trialnumber',
+               'trialtype',
+               'distortion_deg',
+               'targetdirection_deg',
+               'time_s',
+               'step',
+               'targetx_cm',
+               'targety_cm',
+               'handx_cm',
+               'handy_cm',
+               'cursorx_cm',
+               'cursory_cm')
+  
+  for (group in c('older45','young45')) {
+  #for (group in c('young45')) {
+    
+    targetdir <- sprintf('data/%s/',group)
+    
+    if (!dir.exists(targetdir)) { dir.create(targetdir, recursive=TRUE) }
+    
+    participants <- list('young45'=c(0:11,13:27),
+                         'older45'=c(200:213))[[group]]
+    
+    print(participants)
+    
+    for (ppno in participants) {
+      
+      # version is decided by participant number:
+      version <- (ppno %% 4) + 2
+      
+      filename <- sprintf('%s/P%03dV%d.txt', sourcedir, ppno, version)
+      
+      df <- read.table(filename, header=TRUE)
+      names(df)[which(names(df) == 'time_ms')] <- 'time_s'
+      # remove the X11 mouse after all
+      df <- df[,columns]
+      
+      # *****************************
+      # time_s should be converted to time_ms !!!!
+      # or at least it should actually be seconds...
+      # *****************************
+      
+      #names(df)[which(names(df) == 'time_s')] <- 'time_s'
+      #print(df$time_s)
+      df$time_s <- round(df$time_s, digits=3)
+      #print(df$time_s)
+      
+      df$targetx_cm <- round(df$targetx_cm, digits=3)
+      df$targety_cm <- round(df$targety_cm, digits=3)
+      df$handx_cm   <- round(df$handx_cm,   digits=3)
+      df$handy_cm   <- round(df$handy_cm,   digits=3)
+      df$cursorx_cm <- round(df$cursorx_cm, digits=3)
+      df$cursory_cm <- round(df$cursory_cm, digits=3)
+      
+      #cursortrials <- (unique(df$trialnumber[which(df$trialtype == 'Feedback')]))
+      errorclamptrials <- (unique(df$trialnumber[which(df$trialtype == 'Error_Clamp')]))
+      df$trialtype <- 1
+      df$trialtype <- as.numeric(df$trialtype)
+      df$trialtype[which(df$trialnumber %in% errorclamptrials)] <- NA
+      
+      for (start in c(81,301)) {
+        
+        trials <- c(start:(start+219))
+        partdf <- df[which(df$trialnumber %in% trials),]
+        
+        if (abs(partdf$distortion_deg[which(partdf$trialnumber == (start+50))[1]]) == 45) {
+          condition <- 'abrupt'
+        } else {
+          condition <- 'gradual'
+        }
+        
+        useppno <- ppno
+        
+        if (group == 'young45') {
+          useppno <- useppno + 500
+        }
+        
+        write.csv(x = standardNames(partdf),
+                 file = sprintf('data/%s/%s_p%03d_%s.csv', group, group, useppno, condition),
+                 row.names = FALSE)
+        #cat(sprintf('data/%s/%s_p%03d_%s.csv\n', group, group, useppno, condition))
+        #print(str(partdf))
+        #print(df$time_s[1:10])
+        #print(names(df))
+      }
+      
+    }
+    
+  }
+  
+}
+
+splitMunichData <- function() {
+  
+  for (group in c('older45', 'mcebat45')) {
+    
+    print(group)
+    
+    participants <- read.csv(sprintf('data/%s_demographics_org.csv', group), stringsAsFactors = FALSE)
+    
+    participants$participant <- NA
+    
+    ppno_offset <- list('mcebat45'=400, 'older45'=300)[[group]]
+    
+    for (ppno in c(1:length(participants$ID))) {
+      
+      participant <- participants$ID[ppno]
+      participants$participant[ppno] <- ppno + ppno_offset
+
+      # print(participants$participant[ppno])
+      # print(ppno)
+      # print(group)
+      print(sprintf('data/%s/%s.csv',group,participant))
+      df <- read.csv(sprintf('data/%s/%s.csv',group,participant))
+      
+      part1 <- df[which(df$trial %in% c(81:300)),]
+      part1$trial <- part1$trial - 80
+      part2 <- df[which(df$trial %in% c(301:520)),]
+      part2$trial <- part2$trial - 300
+      
+      part1 <- standardNames(part1)
+      part2 <- standardNames(part2)
+      
+      if ( abs(df$rotation[which(df$trial == 131)[1]]) == 45 ) {
+        # part 1 is abrupt
+        write.csv(part1, sprintf('data/%s/%s_p%03d_abrupt.csv', group, group, ppno+ppno_offset), row.names = FALSE)
+        write.csv(part2, sprintf('data/%s/%s_p%03d_gradual.csv', group, group, ppno+ppno_offset), row.names = FALSE)
+      } else {
+        # part 1 is gradual
+        write.csv(part1, sprintf('data/%s/%s_p%03d_gradual.csv', group, group, ppno+ppno_offset), row.names = FALSE)
+        write.csv(part2, sprintf('data/%s/%s_p%03d_abrupt.csv', group, group, ppno+ppno_offset), row.names = FALSE)
+      }
+      
+      
+    }
+    
+    write.csv(participants, sprintf('data/%s_demographics.csv', group), row.names = FALSE)
+    
+  }
+  
+}
+
+
+standardNames <- function(df) {
+  
+  # change 'distortion_deg' and 'rotation' into 'rotation_deg'
+  if ('distortion_deg' %in% names(df)) {
+    names(df)[which(names(df) == 'distortion_deg')] <- 'rotation_deg'
+  }
+  if ('rotation' %in% names(df)) {
+    names(df)[which(names(df) == 'rotation')] <- 'rotation_deg'
+  }
+  
+  if ('targetdirection_deg' %in% names(df)) {
+    names(df)[which(names(df) == 'targetdirection_deg')] <- 'targetangle_deg'
+  }
+  
+  # rename 'trialnumber' to 'trial'
+  if ('trialnumber' %in% names(df)) {
+    names(df)[which(names(df) == 'trialnumber')] <- 'trial'
+  }
+  
+  
+  # rename hand and mouse to stylus
+  if ('handx_cm' %in% names(df)) {
+    names(df)[which(names(df) == 'handx_cm')] <- 'stylusx_cm'
+  }
+  if ('handy_cm' %in% names(df)) {
+    names(df)[which(names(df) == 'handy_cm')] <- 'stylusy_cm'
+  }
+  if ('mousex_cm' %in% names(df)) {
+    names(df)[which(names(df) == 'mousex_cm')] <- 'stylusx_cm'
+  }
+  if ('mousey_cm' %in% names(df)) {
+    names(df)[which(names(df) == 'mousey_cm')] <- 'stylusy_cm'
+  }
+  
+  
+  
+  if ('trialtype' %in% names(df)) {
+    names(df)[which(names(df) == 'trialtype')] <- 'feedback'
+  }
+  
+  return(df)
+  
+}
+
+
+downloadOSFdata <- function(groups=c('young30', 'young60', 'mcebat45', 'older45', 'young45'), overwrite=FALSE, removezip=FALSE) {
+  
+  if (overwrite) {
+    conflicts = 'overwrite'
+  } else {
+    conflicts = 'skip'
+  }
+  
+  osfr::osf_auth(Sys.getenv("OSF_PAT"))
+  
+  OSFnode <- osfr::osf_retrieve_node("c5ezv")
+  
+  # get a list of files for the year and semester that is requested:
+  files <- osfr::osf_ls_files(OSFnode)
+  
+  print(files)
+  
+  for (group in groups) {
+    
+    # get list of files:
+    filenames <- c(sprintf('%s.zip',group))
+    
+    for (filename in filenames) {
+      
+      print(filename)
+      
+      # find which line corresponds to the file:
+      idx <- which(files$name == filename)
+      
+      # check that the file exists on OSF, and is unique:
+      # if not: abort
+      if (length(idx) > 1) {
+        # no unique file found: aborting this one
+        if (length(idx) == 0) {
+          return(FALSE)
+        }
+        return(NULL)
+      }
+      
+      # download the file:
+      if (!file.exists(sprintf('data/%s',files$name[idx])) | overwrite) {
+        osfr::osf_download(x = files[idx,], 
+                           path = 'data/', 
+                           conflicts=conflicts)
+      }
+      
+      # check if it is a zip file:
+      if (grepl('\\.zip$', filename)) {
+        
+        # then unzip it there:
+        unzip(sprintf('data/%s',files$name[idx]), exdir='data/')
+        
+        # and remove the zip file, if that is wanted:
+        if (removezip) {
+          file.remove(sprintf('data/%s',files$name[idx]))
+        }
+        
+      }
+      
+    }
     
   }
   
