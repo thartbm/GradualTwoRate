@@ -12,14 +12,20 @@ This RStudio Project uses `renv` in an attempt to make sure the same (versions o
 Then we access all our custom functions:
 
 ```{r echo=FALSE}
-# this is for getting the data from OSF:
-source('R/data.R')
+# has some functions to process the raw data to get it all into a shared format ready for OSF:
+# data.R # we don't need them functions anymore
 
-# this function provides access to demographics about the participants:
+# this has some common functions, for getting data from OSF, and describing the groups:
+source('R/common.R')
+
+# this function provides access to information about the participants, e.g. demographics and whether or not they learned:
 source('R/participants.R')
 
 # this is for (pre)processing the raw data:
 source('R/process.R')
+
+# this is for selecting trials and participants:
+source('R/select.R')
 
 # this has functions to make figures:
 #source('R/figures.R')
@@ -47,3 +53,37 @@ getReachDeviations()
 
 The data folders for each of the 5 groups now have 2 extra files: one with reach deviations for all participants when doing the abrupt condition and one when doing the gradual condition.
 
+# Two-rate model
+
+The two rate model explains adaptation using a "slow" and a "fast" process. The reach deviation on a trial $t$ is simply the summed output of the two processes:
+
+$X_t = F_t + S_t$
+
+The output of each of the two processes learns from errors based on its' learning rate and also retains some of what its' learned with a retention rate:
+
+$F_t = l^f \cdot e_{t-1} + r^f \cdot F_{t-1}$
+
+$S_t = l^s \cdot e_{t-1} + r^s \cdot S_{t-1}$
+
+To ensure that the fast process is faster than the slow process, model fits are usually constrained such that $l^f > l^s$ and also $r^f < r^s$. Further constraints keep the solution stable.
+
+We start the model with both processes at 0, and in order to obtain a good fit, a perturbation schedule with an aligned phase, long initial rotation, short counter rotation and a phase with error-clamped feedback is usually used. During error-clamped feedback, the errors are artificially set to 0 which means that both processes can only rely on their retention to contribute to any reach deviations.
+
+## Explicit and implicit map onto fast and slow
+
+Some studies suggest that explicit and implicit learning map onto the fast and slow process [@McDougle2015]. In this paper we test some of the predictions that follow from this, and further rely on the assumption that gradually introducing a rotation leads to more implicit adaptation.
+
+# Experiment 1: Rotation Size and Introduction
+
+If the fast process corresponds to explicit learning, this leads to a number of predictions. First, we can test the effect of the magnitude of the rotation. Since we found little to no explicit learning with a 30 degree rotation, and significant explicit learning with a 60 degree rotation previously [@Modchalingam2019] we use these two rotations here. Second, if a gradual introduction of the rotation leads to more implicit learning, this should dampen the fast process (and boost the slow process). Finally, if a gradual and abrupt rotation lead to the same amount of adaptation by the end of training, the rebound in an error-clamp phase should be different if the fast and slow process contribute differently in these two groups.
+
+First, we look at the group data, by plotting it. Then we check the asymptotic level of adaptation, and the absolute size of the rebounds in the error-clamp phases using first an ANOVA and then t-tests. Finally we fit the two-rate model to compare fitted parameter values between conditions.
+
+```{r}
+plotExpPerformance(exp=1, target='inline')
+```
+
+
+# Experiment 2: Mild Cerebellar Ataxia and Age
+
+If the cerebellum implements the majority of implicit adaptation, then people with lesions in the cerebellum should rely more on explicit adaptation compared to age-matched control. If older adults (can) rely less on cognitive capacities (because of age-related cognitive decline) then they should rely more on implicit adaptation compared to younger adaults. Here we test a population with mild cerebellar ataxia. Since most people with cerebellar ataxia are older, we also compare their age-matched controls with younger adults.
