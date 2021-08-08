@@ -1,7 +1,18 @@
 
+# DATA HANDLING -----
+
 # this returns parsed data
 # using the parse function specified
 # for every group and participant present
+# 
+# data can be a (nested) list with data frames
+# or a data frame (parseData is recursive)
+#
+# functions defined here:
+# - block (get average reach deviations in a few specified blocks)
+# - baseline (subtract average reach deviations from the second half of the aligned phase, per target)
+# - addtrial (adds a column in the data frame with trial numbers)
+# - addphase (adds a column in the data frame with phase numbers)
 
 parseData <- function(data, FUN) {
   
@@ -127,3 +138,66 @@ baseline <- function(df) {
   
 }
 
+addtrial <- function(df) {
+  
+  # we want to loop through participants and targets:
+  participants <- unique(df$participant)
+  
+  output <- NA
+  
+  # loop through participants:
+  for (participant in participants) {
+    
+    # get the participants' data
+    pp_idx <- which(df$participant == participant) 
+    pp_df <- df[pp_idx,]
+    
+    pp_df$trial <- c(1:dim(pp_df)[1])
+    
+    if (is.data.frame(output)) {
+      output <- rbind(output, pp_df)
+    } else {
+      output <- pp_df
+    }
+
+  }
+  
+  # return data frame with trial numbers:
+  return(output)
+  
+}
+
+
+addphase <- function(df) {
+  
+  # we want to loop through participants and targets:
+  participants <- unique(df$participant)
+  
+  output <- NA
+  
+  # loop through participants:
+  for (participant in participants) {
+    
+    # get the participants' data
+    pp_idx <- which(df$participant == participant) 
+    pp_df <- df[pp_idx,]
+    
+    if (dim(pp_df)[1] == 164) {
+      pp_df$phase <- c(rep(1,32), rep(2,100), rep(3,12), rep(4,20))
+    }
+    if (dim(pp_df)[1] == 220) {
+      pp_df$phase <- c(rep(1,40), rep(2,120), rep(3,20), rep(4,40))
+    }
+    
+    if (is.data.frame(output)) {
+      output <- rbind(output, pp_df)
+    } else {
+      output <- pp_df
+    }
+    
+  }
+  
+  # return data frame with phase added:
+  return(output)
+  
+}
