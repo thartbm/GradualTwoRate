@@ -1,10 +1,6 @@
 
 library('osfr')
 
-if (!dir.exists('doc')) {
-  dir.create('doc')
-}
-
 # this provides scripts with info
 
 getInfo <- function() {
