@@ -1,6 +1,9 @@
 
 library('osfr')
 
+if (!dir.exists('doc')) {
+  dir.create('doc')
+}
 
 # this provides scripts with info
 
@@ -21,6 +24,23 @@ getInfo <- function() {
                     rotation, 
                     experiment, 
                     window))
+  
+}
+
+getStyle <- function() {
+  
+  condition <- c('abrupt', 'gradual')
+  
+  label     <- c('abrupt', 'ramped')
+  
+  color_s   <- c('#ff8200ff', '#b400e4ff')
+  
+  color_t   <- c('#ff82002f', '#b400e42f')
+  
+  return(data.frame(condition,
+                    label,
+                    color_s,
+                    color_t))
   
 }
 
