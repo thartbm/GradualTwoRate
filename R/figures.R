@@ -59,8 +59,16 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
   
   groups <- info$group[which(info$experiment == exp)]
   
+  fw_i <- 7
+  if (version == 1) {
+    fh_i <- 2.5*length(groups)
+  }
+  if (version == 2) {
+    fh_i <- 2.5*(length(groups)+1)
+  }
+  
   if (target=='pdf') {
-    pdf(file=sprintf('doc/Fig%d.pdf',2+(exp*2)), width=7, height=2.5*length(groups))
+    pdf(file=sprintf('doc/Fig%d.pdf',1+(exp*2)), width=fw_i, height=fh_i)
   }
   
   data <- getSelectedGroupsData(groups=groups)
@@ -75,8 +83,8 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
     layout( mat=matrix(data=c(1:(ngroups*2)), nrow = ngroups, ncol=2, byrow = TRUE), widths=c(1,0.5) )
   }
   if (version == 2) {
-    
-    layout( mat=matrix(data=, nrow=ngroups+1, byrow=TRUE ) )
+    m <- c(unlist(lapply( ((c(1:ngroups)-1) * 3), function(x){rep(c(1,2)+as.numeric(x),each=3)} )), rep(c(1:ngroups)*3, each=6/ngroups) )
+    layout( mat=matrix(data=m, nrow=ngroups+1, byrow=TRUE ) )
   }
   
   par(mar=c(4,3,1,0.2))
@@ -95,14 +103,18 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
     
     ntrials <- max(data[[group]][['gradual']]$trial)
     
-    plot(-1000,-1000,
-         main=group_label,xlab='',ylab='',
-         xlim=c(0,ntrials+1),
-         ylim=ylimits+(c(-0.1,0.1)*rotation),
-         bty='n',
-         ax=F)
-    
     for (condition in c('abrupt','gradual')) {
+      
+      if (version == 1 & condition=='gradual') {
+        # skip making a new panel
+      } else {
+        plot(-1000,-1000,
+             main=group_label,xlab='',ylab='',
+             xlim=c(0,ntrials+1),
+             ylim=ylimits+(c(-0.1,0.1)*rotation),
+             bty='n',
+             ax=F)
+      }
       
       cond_idx <- which(style$condition == condition)
       
@@ -118,10 +130,14 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
       adf <- aggregate(reachdeviation_deg ~ trial, data=df, FUN=median)
       lines(adf$reachdeviation_deg, col=as.character(style$color_s[cond_idx]))
       
+      if (version == 1 & condition=='gradual') {
+        # skip making a new panel
+      } else {
+        axis(side=1, at=c(1,ntrials))
+        axis(side=2, at=c(0,ylimits))
+      }
+      
     }
-    
-    axis(side=1, at=c(1,ntrials))
-    axis(side=2, at=c(0,ylimits))
     
     blocks <- c('rotated','clamped')
     
