@@ -66,6 +66,10 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
   if (version == 2) {
     fh_i <- 2.5*(length(groups)+1)
   }
+  if (version == 3) {
+    fw_i <- 4
+    fh_i <- 7.5
+  }
   
   if (target=='pdf') {
     pdf(file=sprintf('doc/Fig%d.pdf',1+(exp*2)), width=fw_i, height=fh_i)
@@ -84,6 +88,10 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
   }
   if (version == 2) {
     m <- c(unlist(lapply( ((c(1:ngroups)-1) * 3), function(x){rep(c(1,2)+as.numeric(x),each=3)} )), rep(c(1:ngroups)*3, each=6/ngroups) )
+    layout( mat=matrix(data=m, nrow=ngroups+1, byrow=TRUE ) )
+  }
+  if (version == 3) {
+    m <- c( rep( (c(1:ngroups)*2)-1, each=ngroups), c(1:ngroups)*2)
     layout( mat=matrix(data=m, nrow=ngroups+1, byrow=TRUE ) )
   }
   
@@ -105,7 +113,7 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
     
     for (condition in c('abrupt','gradual')) {
       
-      if (version == 1 & condition=='gradual') {
+      if (version %in% c(1,3) & condition=='gradual') {
         # skip making a new panel
       } else {
         plot(-1000,-1000,
