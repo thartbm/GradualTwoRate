@@ -195,8 +195,10 @@ block <- function(df) {
     counter <- mean(pp_df$reachdeviation_deg[counter_idx], na.rm=TRUE)
     clamped <- mean(pp_df$reachdeviation_deg[clamped_idx], na.rm=TRUE)
     
-    pp_block <- data.frame( block=c('rotated', 'counter', 'clamped'),
-                            reachdeviation_deg=c(rotated, counter, clamped))
+    # pp_block <- data.frame( block=c('rotated', 'counter', 'clamped'),
+    #                         reachdeviation_deg=c(rotated, counter, clamped))
+    pp_block <- data.frame( block=c('rotated', 'clamped'),
+                            reachdeviation_deg=c(rotated, clamped))
     pp_block$participant <- participant
     
     if (is.data.frame(blocked)) {
