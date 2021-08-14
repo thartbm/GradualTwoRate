@@ -618,6 +618,13 @@
       "Repository": "CRAN",
       "Hash": "f1b1ca1254ccb485dccc9c0dc65a2c36"
     },
+    "optimx": {
+      "Package": "optimx",
+      "Version": "2021-6.12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dee57179a02ea2fcdf0aa32a9f2114b7"
+    },
     "osfr": {
       "Package": "osfr",
       "Version": "0.2.8",
