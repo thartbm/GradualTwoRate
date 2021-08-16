@@ -1,5 +1,7 @@
 
 
+# Two-Rate Model -----
+
 twoRateModel <- function(par, schedule) {
   
   # thse values should be zero at the start of the loop:
@@ -74,7 +76,7 @@ twoRateMSE <- function(par, schedule, reaches, checkStability=FALSE) {
 }
 
 
-twoRateFit <- function(schedule, reaches, gridpoints=6, gridfits=6, checkStability=FALSE) {
+twoRateFit <- function(schedule, reaches, gridpoints=9, gridfits=5, checkStability=FALSE) {
   
   parvals <- seq(1/gridpoints/2,1-(1/gridpoints/2),1/gridpoints)
   
@@ -133,7 +135,7 @@ twoRateFit <- function(schedule, reaches, gridpoints=6, gridfits=6, checkStabili
   
 }
 
-
+# One-Rate model -----
 
 oneRateModel <- function(par, schedule) {
   
@@ -238,47 +240,7 @@ oneRateFit <- function(schedule, reaches, gridpoints=6, gridfits=6) {
 }
 
 
-twoRates <- function(groupdata, estN='ac_one', compOne=FALSE) {
-  
-  groupnames <- names(groupdata)
-  
-  if (is.numeric(estN)) {
-    
-    if (!all(groupnames %in% names(estN))) {
-      stop('Not all groups in the data have an N specified.\n')
-    } else {
-      # all is good
-      # we put this in a vector that aclag will create:
-      observations <- estN
-    }
-
-
-    # all should be good now...
-  } else if (is.character(estN)) {
-    
-    observations <- c()
-    
-    # determine number of independent observations for each group:
-    for (group in groupnames) {
-      
-      # use reaches to determine number of independent observations:
-      reaches <- groupdata[group]$reaches
-      
-      observations[group] <- seriesEffectiveSampleSize(reaches, method=estN)
-    
-    }
-    
-  } else {
-    stop('Either specify "estN" as a numeric vector of N or a character naming an available method.\n')
-  }
-  
-  # now do the actual modelling on all datasets?
-  
-  
-  
-  
-}
-
+# model fitting extras -----
 
 
 seriesEffectiveSampleSize <- function(series, method='ac_one') {
@@ -379,99 +341,19 @@ seriesEffectiveSampleSize <- function(series, method='ac_one') {
   
 }
 
+AIC <- function(MSE, k, N) {
 
-modelCriteriaMSE <- function(MSE, k, N, n=NA, MSEmean) {
+  return( (N * log(MSE)) + (2 * k) )
   
-  # MSE : our goodness of fit measure in lieu of actual likelihood
-  # k   : number of parameters
-  # N   : number of independent observations
-  # n   : number of observations (number of trials for two-rate models)
+}  
 
-  if (length(MSE) != length(k)) {
-    stop('Arguments MSE and k need to be of the same length.\n')
-  }
-  if (any(c(length(MSE), length(k), length(N)) < 1)) {
-    stop('All arguments must be at least of length 1.\n')
-  }
-  if (!is.numeric(MSE) | !is.numeric(k)) {
-    stop('MSE and k need to be numeric.\n')
-  }
-  if (length(N) > 1 | !is.numeric(N)) {
-    stop('N has to be a single numeric value.\n')
-  }
-  if (!is.na(n) && (length(n) > 1 | !is.numeric(n))) {
-    stop('n has to be NA, or a single numeric value.\n')
-  }
+AICc <- function(MSE, k, N) {
   
-  # maximum likelihood:
-  # L <- (-(n/2) * log(2*pi)) - ((n/2)*log(MSE)) - (1/(2*MSE)*(MSE*n))
-  # but this sometimes results in negative likelihoods
-  # the log_e of which causes problems later on 
+  AIC <- AIC(MSE, k, N)
   
-  # n <- N
-  
-  # without the "constant" that Wikipedia mentions:
-  # this is simpler, and I might replace the constant
-  # L <- -(n/2) * log(MSE)
-  
-  # sometimes we now get inf or nan output, 
-  # so we replace the constant to avoid this:
-  # if (any(L < 1)) {
-  #   L <- (L - min(L)) + 1
-  # }
-  
-  #-- AIC --# 
-  
-  # Thomas calculation:
-  # C <- N*(log(2*pi)+1) # what is this for? a penalty for large number of observations?
-  # AIC <- (2 * k) + N*log(MSE) + C
-  
-  AIC <- (N * log(MSE)) + (2 * k)
-  # AIC <- (2 * k) - (N * log(L))
-  
-  #-- AICc --#
-  
-  if (!is.na(n)) {
-    # correction for low N (compared to k):
-    AICc <- AIC + ( (2 * k^2) / (n - k - 1) )
-  }
-  
-  #-- BIC --#
-  
-  #BIC <- log(N)*k - (2 * log(L))
-  
-  #-- Hannan-Quinn --#
-  
-  #HQC <- (-2 * L) + (2 * k * log(log(N)))
-  
-  if (length(MSE) == 1) {
-    
-    # return(data.frame('AIC'=AIC, 'AICc'=AICc, 'BIC'=BIC, 'HQC'=HQC))
-    if (is.na(n)) {
-      return(data.frame('AIC'=AIC))
-    } else {
-      return(data.frame('AIC'=AIC, 'AICc'=AICc))
-    }
-    
-  } else {
-    
-    AIC.rl  <- relativeLikelihood( AIC  ) # exp( ( min( AIC  ) - AIC  ) / 2 )
-    
-    if (is.na(n)) {
-      return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl))
-    } else {
-      AICc.rl <- relativeLikelihood( AICc )
-      return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl, 'AICc'=AICc, 'AICc.rl'=AICc.rl))
-    }
-    # BIC.rl  <- relativeLikelihood( BIC  )
-    # HQC.rl  <- relativeLikelihood( HQC  )
-    
-    # return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl, 'AICc'=AICc, 'AICc.rl'=AICc.rl, 'BIC'=BIC, 'BIC.rl'=BIC.rl, 'HQC'=HQC, 'HQC.rl'=HQC.rl))
-    
-  }
+  return( AIC + ( (2 * k^2) / (n - k - 1) ) )
   
 }
-
 
 relativeLikelihood <- function(crit) {
   
@@ -479,106 +361,89 @@ relativeLikelihood <- function(crit) {
   
 }
 
-modelCriteriaLikelihood <- function(MSE, k, N, n=NA, MSEmean=NA) {
-  
-  # MSE : our goodness of fit measure in lieu of actual likelihood
-  # k   : number of parameters
-  # N   : number of independent observations
-  # n   : number of observations (number of trials for two-rate models)
-  
-  if (length(MSE) != length(k)) {
-    stop('Arguments MSE and k need to be of the same length.\n')
-  }
-  if (any(c(length(MSE), length(k), length(N)) < 1)) {
-    stop('All arguments must be at least of length 1.\n')
-  }
-  if (!is.numeric(MSE) | !is.numeric(k)) {
-    stop('MSE and k need to be numeric.\n')
-  }
-  if (length(N) > 1 | !is.numeric(N)) {
-    stop('N has to be a single numeric value.\n')
-  }
-  if (!is.na(n) && (length(n) > 1 | !is.numeric(n))) {
-    stop('n has to be NA, or a single numeric value.\n')
-  }
-  
-  # maximum likelihood:
-  # L <- (-(n/2) * log(2*pi)) - ((n/2)*log(MSE)) - (1/(2*MSE)*(MSE*n))
-  # but this sometimes results in negative likelihoods
-  # the log_e of which causes problems later on 
-  
-  # n <- N
-  
-  # without the "constant" that Wikipedia mentions:
-  # this is simpler, and I might replace the constant
-  # print(-(N/2))
-  # print(MSE)
-  # print(log(MSE))
-  
-  
-  
-  L <- -(N/2) * log(MSE) # wikipedia
-  #print(L)
-  
-  # sometimes we now get inf or nan output, 
-  # so we replace the constant to avoid this:
-  # if (any(L < 1)) {
-  #   L <- (L - min(L)) + 1
-  # }
-  
-  # R2 <- 1 - (MSE/MSEmean)
-  # print(R2)
-  # L <- R2
-  
-  #-- AIC --# 
-  
-  # Thomas calculation:
-  # C <- N*(log(2*pi)+1) # what is this for? a penalty for large number of observations?
-  # AIC <- (2 * k) + N*log(MSE) + C
-  
-  # AIC <- (N * log(MSE)) + (2 * k) # MSE based
-  AIC <- (2 * k) - (N * log(L)) # L based?
-  
-  #-- AICc --#
-  
-  if (!is.na(n)) {
-    # correction for low N (compared to k):
-    AICc <- AIC + ( (2 * k^2) / (n - k - 1) )
-  }
-  
-  #-- BIC --#
-  
-  BIC <- log(N)*k - (2 * log(L)) # L based
-  
-  #-- Hannan-Quinn --#
-  
-  HQC <- (-2 * L) + (2 * k * log(log(N))) # L based
-  
-  if (length(MSE) == 1) {
-    
-    # return(data.frame('AIC'=AIC, 'AICc'=AICc, 'BIC'=BIC, 'HQC'=HQC))
-    if (is.na(n)) {
-      return(data.frame('AIC'=AIC))
-    } else {
-      return(data.frame('AIC'=AIC, 'AICc'=AICc))
-    }
-    
-  } else {
-    
-    AIC.rl  <- relativeLikelihood( AIC  ) # exp( ( min( AIC  ) - AIC  ) / 2 )
-    BIC.rl  <- relativeLikelihood( BIC  )
-    HQC.rl  <- relativeLikelihood( HQC  )
-    
-    if (is.na(n)) {
-      return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl, 'BIC'=BIC, 'BIC.rl'=BIC.rl, 'HQC'=HQC, 'HQC.rl'=HQC.rl))
-    } else {
-      AICc.rl <- relativeLikelihood( AICc )
-      return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl, 'AICc'=AICc, 'AICc.rl'=AICc.rl, 'BIC'=BIC, 'BIC.rl'=BIC.rl, 'HQC'=HQC, 'HQC.rl'=HQC.rl))
-    }
+# bootstrapping -----
 
-    # return(data.frame('AIC'=AIC,'AIC.rl'=AIC.rl, 'AICc'=AICc, 'AICc.rl'=AICc.rl, 'BIC'=BIC, 'BIC.rl'=BIC.rl, 'HQC'=HQC, 'HQC.rl'=HQC.rl))
+bootstrapFits <- function(exp=NULL, groups=NULL, iterations=1000) {
+  
+  info <- getInfo()
+  
+  if (!is.null(exp) & is.null(groups)) {
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  alldata <- getSelectedGroupsData(groups=groups)
+  alldata <- parseData(alldata, FUN=baseline)
+  alldata <- parseData(alldata, FUN=addtrial)
+  
+  for (group in groups) {
+    
+    data <- alldata[[group]]
+    
+    # bootstrapping is based on number of participants
+    participants <- unique(data[['abrupt']]$participant)
+    
+    # get group schedules
+    schedules <- list()
+    schedules[['abrupt']]  <- data[['abrupt']]$rotation_deg[which(data[['abrupt']]$participant == participants[1])]
+    schedules[['gradual']] <- data[['gradual']]$rotation_deg[which(data[['gradual']]$participant == participants[1])]
+    
+    # random participant sampling: 
+    set.seed(sum(participants))
+    bs_participants <- matrix(data=sample(x=c(1:length(participants)), size=length(participants)*iterations, replace=TRUE), nrow=iterations, ncol=length(participants))
+    
+    reachdevs <- list()
+    for (condition in c('gradual','abrupt')) {
+      
+      # empty matrix, to be used for storing & drawing actual data:
+      reachdevs[[condition]] <- matrix(data=NA, nrow=max(data[[condition]]$trial), ncol=length(participants) )
+      
+      # fill matrix
+      for (ppno in c(1:length(participants))) {
+        reachdevs[[condition]][,ppno] <- data[[condition]]$reachdeviation_deg[which(data[[condition]]$participant == participants[ppno])]
+      }
+      
+    }
+    
+    # prepared everything for bootstrapping model fits
+    
+    fits <- list('abrupt.Ls'  = c(),
+                 'abrupt.Lf'  = c(),
+                 'abrupt.Rs'  = c(),
+                 'abrupt.Rf'  = c(),
+                 'gradual.Ls' = c(),
+                 'gradual.Lf' = c(),
+                 'gradual.Rs' = c(),
+                 'gradual.Rf' = c()  )
+    
+    cat(sprintf('bootstrapping %s\n',group))
+    for (bs in c(1:iterations)) {
+      
+      # participant sample for this iteration:
+      ps <- as.vector(bs_participants[bs,])
+      
+      for (condition in c('abrupt','gradual')) {
+        
+        bs_data <- reachdevs[[condition]][,ps]
+        reaches   <- rowMeans(bs_data, na.rm=TRUE)
+        
+        fit <- twoRateFit(schedule=schedules[[condition]], 
+                          reaches=reaches, 
+                          gridpoints=9, 
+                          gridfits=5, 
+                          checkStability=TRUE)
+        
+        for (parname in names(fit)) {
+          fits[[sprintf('%s.%s',condition,parname)]] <- c(fits[[sprintf('%s.%s',condition,parname)]], as.numeric(fit[parname]))
+        }
+        
+      }
+      
+      cat(sprintf('finished iteration %d / %d\n',bs,iterations))
+      
+    } 
+    
+    write.csv(as.data.frame(fits),sprintf('data/%s/bootstrapped_TwoRateFits.csv',group), row.names = FALSE, quote=FALSE)
     
   }
   
 }
-
