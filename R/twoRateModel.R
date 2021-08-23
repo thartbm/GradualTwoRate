@@ -76,7 +76,7 @@ twoRateMSE <- function(par, schedule, reaches, checkStability=FALSE) {
 }
 
 
-twoRateFit <- function(schedule, reaches, gridpoints=9, gridfits=5, checkStability=FALSE) {
+twoRateFit <- function(schedule, reaches, gridpoints=14, gridfits=10, checkStability=TRUE) {
   
   parvals <- seq(1/gridpoints/2,1-(1/gridpoints/2),1/gridpoints)
   
@@ -394,12 +394,19 @@ bootstrapFits <- function(exp=NULL, groups=NULL, iterations=1000) {
     reachdevs <- list()
     for (condition in c('gradual','abrupt')) {
       
+      cols <- length(participants)
+      rows <- max(data[[condition]]$trial, na.rm=TRUE)
+      
       # empty matrix, to be used for storing & drawing actual data:
-      reachdevs[[condition]] <- matrix(data=NA, nrow=max(data[[condition]]$trial), ncol=length(participants) )
+      reachdevs[[condition]] <- matrix(data=NA, nrow=rows, ncol=cols )
       
       # fill matrix
       for (ppno in c(1:length(participants))) {
-        reachdevs[[condition]][,ppno] <- data[[condition]]$reachdeviation_deg[which(data[[condition]]$participant == participants[ppno])]
+        pprd <- data[[condition]]$reachdeviation_deg[which(data[[condition]]$participant == participants[ppno])]
+        
+        if (participants[ppno] == 208 & condition == 'gradual') {pprd <- c(pprd,NA)} # this participant is missing the last clamped trial
+
+        reachdevs[[condition]][,ppno] <- pprd
       }
       
     }
@@ -426,11 +433,18 @@ bootstrapFits <- function(exp=NULL, groups=NULL, iterations=1000) {
         bs_data <- reachdevs[[condition]][,ps]
         reaches   <- rowMeans(bs_data, na.rm=TRUE)
         
+        #print(schedules[[condition]])
+        
         fit <- twoRateFit(schedule=schedules[[condition]], 
                           reaches=reaches, 
-                          gridpoints=9, 
-                          gridfits=5, 
+                          gridpoints=14, 
+                          gridfits=10, 
                           checkStability=TRUE)
+        
+        #print(c(fit,'MSE'=twoRateMSE(par=fit,schedule=schedules[[condition]],reaches=reaches,checkStability = FALSE)))
+        
+        #plot(reaches,col='gray',main=sprintf('MSE: %0.3f',twoRateMSE(par=fit,schedule = schedules[[condition]], reaches=reaches,checkStability = T)))
+        #lines(twoRateModel(par=fit,schedule=schedules[[condition]])$total,col='red')
         
         for (parname in names(fit)) {
           fits[[sprintf('%s.%s',condition,parname)]] <- c(fits[[sprintf('%s.%s',condition,parname)]], as.numeric(fit[parname]))
@@ -447,3 +461,108 @@ bootstrapFits <- function(exp=NULL, groups=NULL, iterations=1000) {
   }
   
 }
+
+
+modelMSEs <- function(exp=NULL, groups=NULL) {
+
+  info <- getInfo()
+  
+  if (!is.null(exp) & is.null(groups)) {
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  alldata <- getSelectedGroupsData(groups=groups)
+  alldata <- parseData(alldata, FUN=baseline)
+  alldata <- parseData(alldata, FUN=addtrial)
+  
+  for (group in groups) {
+    
+    data <- alldata[[group]]
+    
+    # bootstrapping is based on number of participants
+    participants <- unique(data[['abrupt']]$participant)
+    
+    # get group schedules
+    schedules <- list()
+    schedules[['abrupt']]  <- data[['abrupt']]$rotation_deg[which(data[['abrupt']]$participant == participants[1])]
+    schedules[['gradual']] <- data[['gradual']]$rotation_deg[which(data[['gradual']]$participant == participants[1])]
+    
+    
+    all_fits <- read.csv(sprintf('data/%s/bootstrapped_TwoRateFits.csv', group), stringsAsFactors = F )
+    
+    iterations <- dim(all_fits)[1]
+    
+    # random participant sampling: 
+    set.seed(sum(participants))
+    bs_participants <- matrix(data=sample(x=c(1:length(participants)), size=length(participants)*iterations, replace=TRUE), nrow=iterations, ncol=length(participants))
+    
+    
+    reachdevs <- list()
+    for (condition in c('gradual','abrupt')) {
+      
+      cols <- length(participants)
+      rows <- max(data[[condition]]$trial, na.rm=TRUE)
+      
+      # empty matrix, to be used for storing & drawing actual data:
+      reachdevs[[condition]] <- matrix(data=NA, nrow=rows, ncol=cols )
+      
+      # fill matrix
+      for (ppno in c(1:length(participants))) {
+        pprd <- data[[condition]]$reachdeviation_deg[which(data[[condition]]$participant == participants[ppno])]
+        
+        if (participants[ppno] == 208 & condition == 'gradual') {pprd <- c(pprd,NA)} # this participant is missing the last clamped trial
+        
+        reachdevs[[condition]][,ppno] <- pprd
+      }
+      
+    } # 
+    
+    #print(reachdevs)
+    
+    abfits2abdata.MSE <- c()
+    abfits2grdata.MSE <- c()
+    grfits2grdata.MSE <- c()
+    grfits2abdata.MSE <- c()
+    
+    for (fit_no in c(1:iterations)) {
+      
+      # # # # # # # # # # # # 
+      #
+      #   HERE GET ALL MSEs
+      #
+      # # # # # # # # # # # #
+      
+      # participant sample for this iteration:
+      ps <- as.vector(bs_participants[fit_no,])
+      
+      bs_gradual_data <- reachdevs[['gradual']][,ps]
+      bs_abrupt_data <- reachdevs[['abrupt']][,ps]
+      gradual_reaches   <- rowMeans(bs_gradual_data, na.rm=TRUE)
+      abrupt_reaches   <- rowMeans(bs_abrupt_data, na.rm=TRUE)
+      
+      two_fits <- all_fits[fit_no,]
+      fits <- list()
+      fits[['abrupt']] <- c()
+      fits[['gradual']] <- c()
+      for (condition in c('gradual','abrupt')) {
+        for (parameter in c('Ls','Lf','Rs','Rf')) {
+          fits[[condition]] <- c(fits[[condition]], two_fits[,sprintf('%s.%s',condition,parameter)])
+        }
+        names(fits[[condition]]) <- c('Ls','Lf','Rs','Rf')
+      }
+      
+      abfits2abdata.MSE <- c(abfits2abdata.MSE,  twoRateMSE(par=fits[['abrupt']],  schedule=schedules[['abrupt']], reaches=abrupt_reaches))
+      abfits2grdata.MSE <- c(abfits2grdata.MSE,  twoRateMSE(par=fits[['abrupt']],  schedule=schedules[['gradual']], reaches=gradual_reaches))
+      grfits2grdata.MSE <- c(grfits2grdata.MSE, twoRateMSE(par=fits[['gradual']], schedule=schedules[['gradual']], reaches=gradual_reaches))
+      grfits2abdata.MSE <- c(grfits2abdata.MSE, twoRateMSE(par=fits[['gradual']], schedule=schedules[['abrupt']], reaches=abrupt_reaches))
+      
+    }
+    
+    write.csv(data.frame(abfits2abdata.MSE, grfits2grdata.MSE, abfits2grdata.MSE, grfits2abdata.MSE), 
+              sprintf('data/%s/modelMSEs.csv',group), row.names=F, quote=F)
+    
+    
+  } # end loop through groups
+    
+}
+
