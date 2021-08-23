@@ -1,5 +1,8 @@
 
-# here there be functions to get data sets from OSF
+# The functions in this file won't run on your computer.
+# They were used to get the data from all experiments in the same,
+# more readable format. 
+# They are provided here as a form of documentation.
 
 library('osfr')
 
@@ -25,7 +28,7 @@ sort30s <- function() {
       # tablet size: 311   x 216 mm
       #             0.717    0.797
       
-      # --> SOUNDS LIKE 72%
+      # --> SOUNDS LIKE 72% (PyVMEC screen resize setting)
       
       ppc <- 38.754789272
       ppc <- ppc / 0.72
@@ -204,7 +207,7 @@ downsampleMatlab2CSV <- function() {
       dat_cury <- trialdata$cursory_cm - home[2]
       dat_time <- dat_time - dat_time[1]
 
-      # interpolate at 100 Hz:
+      # interpolate at 60 Hz:
       time_s <- seq(0,max(dat_time),1/60)
 
       # mouse x
@@ -253,18 +256,18 @@ downsampleMatlab2CSV <- function() {
       intdat$time_s     <- round(time_s, digits=digits)
       
       intdat$targetangle_deg <- round((atan2(intdat$targety_cm[1], intdat$targetx_cm[1])/pi)*180)
-
-
+      
+      
       intdat <- intdat[c('trial','targetangle_deg','feedback','rotation','targetx_cm','targety_cm','time_s','stylusx_cm','stylusy_cm','cursorx_cm','cursory_cm')]
-
+      
       if (is.data.frame(output)) {
         output <- rbind(output, intdat)
       } else {
         output <- intdat
       }
-
+      
     }
-
+    
     write.csv(output, sprintf('data/%s/%s.csv', group, participant), row.names = F)
     
   }
