@@ -2,7 +2,80 @@
 require('afex')
 require('BayesFactor')
 
-# ANOVAs -----
+
+# order effects -----
+
+testOrderEffects <- function(exp=NULL, groups=NULL) {
+
+  if (is.null(groups)) {
+    # we need to know the groups in the experiment:
+    info <- getInfo()
+    groups <- info$group[which(info$experiment == exp)]
+  }
+
+  # we collect all data here for an ANOVA on all the data:
+  df <- NA
+
+  group_anovas <- list()
+
+  for (group in groups) {
+
+    # we collect group data here, so we can do group-based ANOVAs:
+    g_df <- read.csv(sprintf('data/%s/abrupt_learningrates.csv',group))
+
+    # add group variable to the data frame:
+    g_df$group <- group
+
+    # make factors:
+    for (column in c('participant','first_condition','group')) {
+      g_df[,column] <- as.factor(g_df[,column])
+    }
+
+    # do group ANOVA on group data:
+
+    g_aov <- afex::aov_ez(id = "participant",
+                          dv = "lambda",
+                          data = g_df,
+                          between = c("first_condition"),
+                          type = 3,
+    )
+
+    group_anovas[[group]] <- g_aov
+
+
+    # add group data to all data:
+
+    if (is.data.frame(df)) {
+      df <- rbind(df,g_df)
+    } else {
+      df <- g_df
+    }
+
+  }
+
+  # do ANOVA on all groups:
+  if (!is.null(exp)) {
+    e_aov <- afex::aov_ez(id = "participant",
+                          dv = "lambda",
+                          data = df,
+                          between = c("group","first_condition"),
+                          type = 3 )
+    
+    cat(sprintf('\n===== Experiment: %d =====\n',exp ))
+    print(summary(e_aov))
+  } else {
+    # print the group-based ANOVAs:
+    for (group in names(group_anovas)) {
+      cat(sprintf('\n===== %s =====\n',toupper(group) ))
+      print(summary(group_anovas[[group]]))
+    }
+  }
+  
+
+}
+
+
+# adaptation and rebounds -----
 
 doExpANOVAs <- function(exp=NULL, groups=NULL) {
   
@@ -101,9 +174,7 @@ doExpANOVAs <- function(exp=NULL, groups=NULL) {
   
 }
 
-# Bayesian stats -----
-
-doConDiffBF <- function(exp=NULL, groups=NULL) {
+conditionBayesFactors <- function(exp=NULL, groups=NULL) {
   
   if (is.null(groups)) {
     # we need to know the groups in the experiment:
@@ -185,6 +256,57 @@ doConDiffBF <- function(exp=NULL, groups=NULL) {
       print(summary(group_BFs[[group]][['rotated']]))
       print(summary(group_BFs[[group]][['clamped']]))
     }
+  }
+  
+  
+}
+
+
+# model quality and parameter comparisons -----
+
+crossConditionMSEs <- function(exp=NULL, groups=NULL) {
+  
+  if (is.null(groups)) {
+    # we need to know the groups in the experiment:
+    info <- getInfo()
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  for (group in groups) {
+    
+    MSEs <- read.csv(sprintf('data/%s/modelMSEs.csv', group))
+    
+    cat(sprintf('\n--- %s: ---\n',toupper(group)))
+    print( quantile(as.numeric(MSEs[,'abfits2grdata.MSE']) - as.numeric(MSEs[,'grfits2grdata.MSE']), probs=c(0.025, 0.975)) )
+    
+  }
+  
+}
+
+conditionParameterDiffs <- function(exp=NULL, groups=NULL) {
+  
+  if (is.null(groups)) {
+    # we need to know the groups in the experiment:
+    info <- getInfo()
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  for (group in groups) {
+    
+    fits <- read.csv(sprintf('data/%s/bootstrapped_TwoRateFits.csv', group))
+
+    cat(sprintf('\n--- %s ---\n',toupper(group)))
+    
+    for (parameter in c('Ls','Rs','Lf','Rf')) {
+      column1 <- sprintf('abrupt.%s',parameter)
+      column2 <- sprintf('gradual.%s',parameter)
+      cat(sprintf('    %s:\n',parameter))
+      print( quantile( as.numeric(fits[,column1]) - as.numeric(fits[,column2] ), 
+                       probs=c(0.025, 0.975)) )
+    }
+    
+    
+    
   }
   
 }
