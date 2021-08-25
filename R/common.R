@@ -2,7 +2,7 @@
 library('osfr')
 
 
-# meta functions -----
+# meta info -----
 
 # this provides scripts with info
 
@@ -43,7 +43,86 @@ getStyle <- function() {
   
 }
 
-# get OSF data -----
+getOrder <- function(exp=NULL) {
+  
+  if (exp == 1) {
+    
+    # A: gradual, left, clockwise; abrupt, right, counterclockwise
+    # B: gradual, left, counterclockwise; abrupt, right, clockwise
+    # C: gradual, right, clockwise; abrupt, left, counterclockwise 
+    # D: gradual, right, counterclockwise; abrupt, left, clockwise 
+    # E: abrupt, left, clockwise; gradual, right, counterclockwise
+    # F: abrupt, left, counterclockwise; gradual, right, clockwise
+    # G: abrupt, right, clockwise; gradual, left, counterclockwise
+    # H: abrupt, right, counterclockwise; gradual, left, clockwise
+    
+    version <- c('A','B','C','D','E','F','G','H')
+    first_condition <- c('gradual','gradual','gradual','gradual','abrupt','abrupt','abrupt','abrupt')
+    first_quadrant <- c(2,2,1,1,2,2,1,1)
+    first_rotation <- c(-1,1,-1,1,-1,1,-1,1)
+    
+    return(data.frame(version,first_condition,first_quadrant,first_rotation))
+    
+  }
+  
+  if (exp==2) {
+    
+    version <- c(2,3,4,5)
+    
+    first_condition <- c('gradual','gradual','abrupt','abrupt')
+    first_quadrant <- c(1,2,1,2)
+    first_rotation <- c(1,-1,1,-1)
+    
+    return(data.frame(version,first_condition,first_quadrant,first_rotation))
+    
+  }
+  
+  warning('`exp` variable is NULL: set to 1 or 2')
+  return(exp)
+  
+}
+
+getVersion <- function(exp=NULL, group=NULL) {
+  
+  # since versions are coded as different types in the 2 experiments
+  # (letter versus number: character / integer)
+  # you can only get 1 group, or 1 experiment from this function
+  # otherwise the integers get converted to characters
+  
+  info <- getInfo()
+  
+  if (is.null(group)) {
+    groups <- info$group[which(info$experiment == exp)]
+  } else {
+    groups <- c(group)
+  }
+  
+  
+  df <- NA
+  
+  for (group in groups) {
+    
+    experiment <- info$experiment[which(info$group == group)]
+    exp_order <- getOrder(exp=experiment)
+    
+    gdf <- read.csv(sprintf('data/%s_demographics.csv',group), stringsAsFactors = FALSE)
+    gdf <- gdf[c('participant','version')]
+    
+    gdf <- merge(x=gdf, y=exp_order, by.x='version', by.y='version', all=TRUE, no.dups=FALSE)
+    
+    if (is.data.frame(df)) {
+      df <- rbind(df,gdf)
+    } else {
+      df <- gdf
+    }
+    
+  }
+  
+  return(df)
+  
+}
+
+# download OSF data -----
 
 # by default, this function:
 # - downloads data of all 5 groups from OSF
@@ -116,9 +195,200 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
   
 }
 
+# data information -----
 
 
-# data handling -----
+getAllGroupParticipants <- function(group) {
+  
+  df <- read.csv(sprintf('data/%s_demographics.csv',group), stringsAsFactors = FALSE)
+  
+  if ('participant' %in% names(df)) {
+    return(df$participant)
+  }
+  
+  if ('ID' %in% names(df)) {
+    print('ID')
+    return(df$ID)
+  }
+  
+  # young30:  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 28 29 30 31
+  # young60: 101 102 104 105 106 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 130 131 132
+  
+  # older45: 301 302 303 304 305 306 307 308 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216
+  # mcebat45: 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 419 420 421 422
+  # younger45: 500 501 502 503 504 505 506 507 508 509 510 511 512 513 514 515 516 517 518 519 520 521 522 523 524 525 526 527 528 529
+  
+  
+}
+
+
+checkGroupData <- function(group, report='list') {
+  
+  participants <- getAllGroupParticipants(group)
+  notOK <- c()
+  
+  for (participant in participants) {
+    
+    for (condition in c('abrupt','gradual')) {
+      
+      filename <- sprintf('data/%s/%s_p%03d_%s.csv', group, group, participant, condition)
+      
+      if (!file.exists(filename)) {
+        if (report == 'print') {
+          print(filename)
+        }
+        if (report == 'list') {
+          notOK <- c(notOK, participant)
+        }
+        
+      }
+      
+    }
+    
+  }
+  
+  if (report == 'list') {
+    if (length(notOK) > 0) {
+      return(unique(notOK))
+    } else {
+      return(notOK)
+    }
+  }
+  
+}
+
+getGroupParticipants <- function(group) {
+  
+  participants <- getAllGroupParticipants(group)
+  notOK <- checkGroupData(group)
+  
+  participants <- setdiff(participants, notOK)
+  
+  return(participants)
+  
+}
+
+
+
+# data selecting -----
+
+
+# there will be 2 ways to select:
+
+# 1: remove out of bounds trials
+# 2: remove non-learning participants
+
+getSelectedGroupsData <- function(groups=c()) {
+  
+  info <- getInfo()
+  
+  selectedData <- list()
+  
+  for (group in groups) {
+    
+    rotation <- info$rotation[which(info$group == group)]
+    window <- info$window[which(info$group == group)]
+    selectedData[[group]] <- list()
+    
+    # participants have to be selected based on performance in both conditions:
+    for (condition in c('abrupt', 'gradual')) {
+      
+      df <- read.csv(sprintf('data/%s/%s_%s.csv', group, group, condition), stringsAsFactors = FALSE)
+      
+      df <- selectReaches(df=df, window=window)
+      
+      df <- selectParticipants(df=df, rotation=rotation)
+      
+      selectedData[[group]][[condition]] <- df
+      
+    }
+    
+    abrupt_participants  <- unique(selectedData[[group]][['abrupt' ]]$participant)
+    gradual_participants <- unique(selectedData[[group]][['gradual']]$participant)
+    
+    pp_select <- intersect( gradual_participants, abrupt_participants)
+    
+    selectedData[[group]][['abrupt' ]] <- selectedData[[group]][['abrupt' ]][which(selectedData[[group]][['abrupt' ]]$participant %in% pp_select),]
+    selectedData[[group]][['gradual']] <- selectedData[[group]][['gradual']][which(selectedData[[group]][['gradual']]$participant %in% pp_select),]
+  }
+  
+  return(selectedData)
+  
+}
+
+
+selectReaches <- function(df, window) {
+  
+  # reaches have to fall within the window:
+  minimum <- rep(-1*window, dim(df)[1])
+  maximum <- rep( 1*window, dim(df)[1])
+  
+  # but we want to adjust that for the rotation:
+  rot <- df$rotation_deg * -1 # counter!
+  rot[which(is.na(rot))] <- 0
+  
+  # adjust window down for positive rotations:
+  min_idx <- which(rot < 0)
+  minimum[min_idx] <- minimum[min_idx] + rot[min_idx]
+  
+  # adjust window up for negative rotations:
+  max_idx <- which(rot > 0)
+  maximum[max_idx] <- maximum[max_idx] + rot[max_idx]
+  
+  # points outside window:
+  lo_idx <- which(df$reachdeviation_deg < minimum)
+  hi_idx <- which(df$reachdeviation_deg > maximum)
+  
+  # set those points to NA
+  df$reachdeviation_deg[c(lo_idx,hi_idx)] <- NA
+  
+  # return the result:
+  return(df)
+  
+}
+
+selectParticipants <- function(df, rotation) {
+  
+  # we want to look at individual participants, so let's just loop through them
+  # first we need to know who they are:
+  participants <- unique(df$participant)
+  # and we will want to return a data frame with the accepted participants only:
+  selected <- NA
+  
+  # here we loop through participants:
+  for (participant in participants) {
+    
+    # we get the data for only that participant:
+    pp_idx <- which(df$participant == participant)
+    pp_df <- df[pp_idx,]
+    
+    # and index the trials for the first rotation:
+    rot_idx <- sort(which(pp_df$rotation_deg == (-1 * rotation)), decreasing = TRUE)[1:40]
+    
+    # this is the average adaptation:
+    adaptation <- mean(pp_df$reachdeviation_deg[rot_idx], na.rm=TRUE)
+    
+    if (adaptation > (rotation*(2/3))) {
+      
+      if (is.data.frame(selected)) {
+        selected <- rbind(selected, pp_df)
+      } else {
+        selected <- pp_df
+      }
+      
+    }
+    
+  }
+  
+  #print( setdiff( unique(df$participant), unique(selected$participant) )  )
+  
+  return(selected)
+  
+}
+
+
+
+# data parsing -----
 
 # this returns parsed data
 # using the parse function specified
@@ -133,14 +403,16 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
 # - addtrial (adds a column in the data frame with trial numbers)
 # - addphase (adds a column in the data frame with phase numbers)
 
-parseData <- function(data, FUN) {
+
+
+parseData <- function(data, FUN, ...) {
   
   
   # data has to either be a list of data frames
   # or a data frame
   if (is.data.frame(data)) {
     # if it is a data frame, we process it
-    return(FUN(data))
+    return(FUN(data, ...))
   }
   
   if (is.list(data)) {
@@ -148,7 +420,8 @@ parseData <- function(data, FUN) {
     
     for (itemno in c(1:length(data))) {
       
-      data[[itemno]] <- parseData(data=data[[itemno]], FUN=FUN)
+      #print(names(data)[itemno])
+      data[[itemno]] <- parseData(data=data[[itemno]], FUN=FUN, ...)
       
     }
     
@@ -161,7 +434,18 @@ parseData <- function(data, FUN) {
   
 }
 
-block <- function(df) {
+block <- function(df, blocks=c('rotated', 'clamped')) {
+  
+  # by default, the average reach deviation in two blocks of trials are returned:
+  # 'rotated': the last 10 trials of the initial rotation
+  # 'clamped': the last 10 trials of the error-clamped phase
+  # these are the ones we use in our analyses
+  
+  # two more are available:
+  # 'early': the first 4 trials of the initial rotation (makes no sense for gradual)
+  # 'counter': the last 4 trials of the counter rotation (pretty flaky, estimates)
+  
+  # more could be added, or the number of trials could be changed... 
   
   # we want to loop through participants:
   participants <- unique(df$participant)
@@ -173,11 +457,13 @@ block <- function(df) {
   ntrials <- length(which(df$participant == participants[1]))
   
   if (ntrials == 164) {
+    early_idx   <- c(33:36) # first four?
     rotated_idx <- c(123:132) # last ten?
     counter_idx <- c(141:144) # last four?
     clamped_idx <- c(155:164) # last ten?
   }
   if (ntrials == 220) {
+    early_idx   <- c(41:44) # first four?
     rotated_idx <- c(151:160) # last ten?
     counter_idx <- c(177:180) # last four?
     clamped_idx <- c(211:220) # last ten?
@@ -191,14 +477,17 @@ block <- function(df) {
     pp_df <- df[pp_idx,]
     
     # get their blocked data...
+    early   <- mean(pp_df$reachdeviation_deg[early_idx], na.rm=TRUE)
     rotated <- mean(pp_df$reachdeviation_deg[rotated_idx], na.rm=TRUE)
     counter <- mean(pp_df$reachdeviation_deg[counter_idx], na.rm=TRUE)
     clamped <- mean(pp_df$reachdeviation_deg[clamped_idx], na.rm=TRUE)
     
+    reachdevs <- c('early'=early, 'rotated'=rotated, 'counter'=counter, 'clamped'=clamped)
+    
     # pp_block <- data.frame( block=c('rotated', 'counter', 'clamped'),
     #                         reachdeviation_deg=c(rotated, counter, clamped))
-    pp_block <- data.frame( block=c('rotated', 'clamped'),
-                            reachdeviation_deg=c(rotated, clamped))
+    pp_block <- data.frame( block=blocks,
+                            reachdeviation_deg=reachdevs[blocks])
     pp_block$participant <- participant
     
     if (is.data.frame(blocked)) {
@@ -208,6 +497,8 @@ block <- function(df) {
     }
     
   }
+  
+  rownames(blocked) <- c()
   
   return(blocked)
   
@@ -332,7 +623,6 @@ normalize <- function(df) {
   return(df)
   
 }
-
 
 # statistical functions -----
 
