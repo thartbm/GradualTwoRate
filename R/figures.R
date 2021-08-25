@@ -52,7 +52,7 @@ rePlotMethodsFigX <- function(target='inline', fig=1) {
 
 # performance plot: -----
 
-plotExpBehavior <- function(target='inline', exp, version=1) {
+plotExpBehavior <- function(target='inline', exp, version=3) {
   
   info <- getInfo()
   style <- getStyle()
@@ -197,8 +197,9 @@ plotExpBehavior <- function(target='inline', exp, version=1) {
   
 }
 
+# model plots -----
 
-plotExpModelFits <- function(target='inline', exp, version=1) {
+plotExpModelFits <- function(target='inline', exp, version=4) {
   
   info <- getInfo()
   style <- getStyle()
@@ -215,6 +216,9 @@ plotExpModelFits <- function(target='inline', exp, version=1) {
   if (version == 3) {
     fw_i <- 4
     fh_i <- 7.5
+  }
+  if (version == 4) {
+    fh_i <- 2.5 * (length(groups))
   }
   
   if (target=='pdf') {
@@ -239,10 +243,18 @@ plotExpModelFits <- function(target='inline', exp, version=1) {
     m <- c( rep( (c(1:ngroups)*2)-1, each=ngroups), c(1:ngroups)*2)
     layout( mat=matrix(data=m, nrow=ngroups+1, byrow=TRUE ) )
   }
+  if (version == 4) {
+    m <- c(1:ngroups)
+    layout( mat = matrix(data=m,
+                         nrow=ngroups,
+                         byrow=TRUE) )
+  }
   
   par(mar=c(4,3,1,0.2))
   
   for (group in names(data)) {
+    
+    fits <- read.csv(sprintf('data/%s/twoRateFits.csv',group), stringsAsFactors = FALSE)
     
     group_idx <- which(info$group == group)
     rotation <- info$rotation[group_idx]
@@ -258,7 +270,13 @@ plotExpModelFits <- function(target='inline', exp, version=1) {
     
     for (condition in c('abrupt','gradual')) {
       
-      if (version %in% c(1,3) & condition=='gradual') {
+      fit <- c('Ls'=0,'Lf'=0,'Rs'=0,'Rf'=0)
+      for (parameter in names(fit)) {
+        column <- sprintf('%s.%s',condition,parameter)
+        fit[parameter] <- fits[group_idx <- which(fits$participant == -1),column]
+      }
+      
+      if (version %in% c(1,3,4) & condition=='gradual') {
         # skip making a new panel
       } else {
         plot(-1000,-1000,
@@ -284,11 +302,11 @@ plotExpModelFits <- function(target='inline', exp, version=1) {
       
       schedule <- df$rotation_deg[which(df$participant == df$participant[1])]
       
-      fit <- twoRateFit(schedule=schedule, 
-                        reaches=adf$reachdeviation_deg, 
-                        gridpoints=14, 
-                        gridfits=10, 
-                        checkStability=TRUE)
+      # fit <- twoRateFit(schedule=schedule, 
+      #                   reaches=adf$reachdeviation_deg, 
+      #                   gridpoints=14, 
+      #                   gridfits=10, 
+      #                   checkStability=TRUE)
       
       model <- twoRateModel(par=fit,
                             schedule=schedule)
@@ -305,42 +323,66 @@ plotExpModelFits <- function(target='inline', exp, version=1) {
       
     }
     
-    plot(-1000,-1000,
-         main='',xlab='',ylab='',
-         xlim=c(-5,35),
-         ylim=c(0,0.4),
-         bty='n', ax=F)
-    
-    MSEs <- read.csv(sprintf('data/%s/rampedMSEfromAbruptFit.csv', group), stringsAsFactors = F)
-    
-    X <- seq(-5,55,length.out=301)
-    
-    for (cond_idx in c(1,2)) {
-      condition <- c('abrupt','gradual')[cond_idx]
-      MSE <- as.numeric(MSEs[,sprintf('%s.MSE',condition)])
-      Y <- density(x = MSE,
+    if (version != 4) {
+      plot(-1000,-1000,
+           main='',xlab='',ylab='',
+           xlim=c(-5,35),
+           ylim=c(0,0.45),
+           bty='n', ax=F)
+      
+      MSEs <- read.csv(sprintf('data/%s/modelMSEs.csv', group), stringsAsFactors = F)
+      
+      X <- seq(-5,35,length.out=301)
+      
+      for (cond_idx in c(1,2)) {
+        condition <- c('abrupt','gradual')[cond_idx]
+        MSE <- as.numeric(MSEs[,sprintf('%sfits2%sdata.MSE',substr(condition,1,2),substr(condition,1,2))])
+        Y <- density(x = MSE,
+                     kernel='gaussian',
+                     #width=2,
+                     n=301,
+                     from=-5,
+                     to=35)$y
+        
+        
+        #lines(X,Y,col=as.character(style$color_s[cond_idx]))
+        polX <- c(X,35,-5)
+        polY <- c(Y,0,0)
+        polygon(polX,polY,border=NA,col=as.character(style$color_t[cond_idx]))
+        
+      }
+      
+      for (cond_idx in c(1,2)) {
+        condition <- c('abrupt','gradual')[cond_idx]
+        MSE <- as.numeric(MSEs[,sprintf('abfits2%sdata.MSE',substr(condition,1,2))])
+        Y <- density(x = MSE,
+                     kernel='gaussian',
+                     #width=2,
+                     n=301,
+                     from=-5,
+                     to=35)$y
+        
+        
+        lines(X,Y,col=as.character(style$color_s[cond_idx]))
+        
+      }
+      
+      MSEd <- as.numeric(MSEs[,'abfits2grdata.MSE']) - as.numeric(MSEs[,'grfits2grdata.MSE'])
+      Y <- density(x = MSEd,
                    kernel='gaussian',
-                   width=2,
+                   #width=2,
                    n=301,
                    from=-5,
                    to=55)$y
       
-      lines(X,Y,col=as.character(style$color_s[cond_idx]))
+      #print(quantile(MSEd,probs=c(0.025,0.975)))
+      
+      lines(X,Y,col='black')
+      
+      axis(side=1, at=c(0,10,20,30))
+      #axis(side=2, at=c(0,rotation))
       
     }
-    
-    MSEd <- as.numeric(MSEs[,'abrupt.MSE']) - as.numeric(MSEs[,'gradual.MSE'])
-    Y <- density(x = MSEd,
-                 kernel='gaussian',
-                 width=2,
-                 n=301,
-                 from=-5,
-                 to=55)$y
-    
-    lines(X,Y,col='black')
-    
-    axis(side=1, at=c(0,10,20,30))
-    #axis(side=2, at=c(0,rotation))
     
   }
   
@@ -384,10 +426,10 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
     
     for (parameter in c('Ls','Rs','Lf','Rf')) {
       
-      ylims <- list('Ls'=c(0,40),
-                    'Rs'=c(0,40),
-                    'Lf'=c(0,15),
-                    'Rf'=c(0,15))[[parameter]]
+      ylims <- list(  'Ls'=c(-8,40),
+                      'Rs'=c(-8,40),
+                      'Lf'=c(-3,15),
+                      'Rf'=c(-3,15)  )[[parameter]]
       
       main<-''
       if (parameter == 'Ls') {
@@ -397,7 +439,6 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
       if (group == groups[length(groups)]) {
         xlab<-parameter
       }
-      print(xlab)
       plot(-1000,-1000,
            main=main,xlab=xlab,ylab='',
            xlim=c(0,1),
@@ -405,9 +446,19 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
            bty='n',
            ax=F)
       
+      groupfits <- read.csv(sprintf('data/%s/twoRateFits.csv',group), stringsAsFactors=TRUE)
+      
       for (condition in c('abrupt','gradual')) {
         
+        column  <- sprintf('%s.%s',condition,parameter)
+        parvals <- groupfits[which(groupfits$participant > -1),column]
+        
         cond_idx <- which(style$condition == condition)
+        
+        points(x=parvals,
+               y=rep(cond_idx/3*ylims[1],length(parvals)),
+               col=as.character(style$color_t[cond_idx]),
+               pch=16, cex=1.0)
         
         colname <- sprintf('%s.%s',condition,parameter)
         parvals <- as.numeric(unlist(fits[colname]))
@@ -425,6 +476,125 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
       
     }
 
+  }
+  
+  if (target %in% c('pdf')) {
+    dev.off()
+  }
+  
+}
+
+# plot parameter recovery simulation -----
+
+plotParameterRecovery <- function(target='inline') {
+  
+  info <- getInfo()
+  style <- getStyle()
+  
+  fw_i <- 7
+  fh_i <- 2
+  
+  if (target=='pdf') {
+    pdf(file=sprintf('doc/Fig%d.pdf',9), width=fw_i, height=fh_i)
+  }
+  
+  
+  layout( mat = matrix(data = c(1:8), 
+                       nrow = 2, 
+                       ncol = 4, 
+                       byrow = TRUE) )
+  
+  par(mar=c(3,4,1,0.2))
+  
+  # first we retrieve the true parameters, just like in the simulation:
+  # we want ground truth parameters in this vector:
+  ground_truth_parameters <- c('Ls'=NA,
+                               'Lf'=NA,
+                               'Rs'=NA,
+                               'Rf'=NA)
+  
+  # we'll use the young45 group's abrupt fit for the group:
+  y45fits <- read.csv('data/young45/twoRateFits.csv', 
+                      stringsAsFactors = FALSE)
+  
+  # and put those parameters in our vector:
+  group_idx <- which(y45fits$participant == -1)
+  for (par in names(ground_truth_parameters)) {
+    column <- sprintf('abrupt.%s',par)
+    ground_truth_parameters[par] <- as.numeric(unlist(y45fits[group_idx,column]))
+  }
+  
+  # we also load all the recovered fits:
+  recovered_fits <- list('zero' <- list('abrupt'=NA,
+                                        'ramped'=NA),
+                         'cntr' <- list('abrupt'=NA,
+                                        'ramped'=NA))
+  for (counter in c('zero','cntr')) {
+    for(condition in c('abrupt','ramped')) {
+      df <- read.csv(file=sprintf('data/young45/recovered_fits_%s_%s.csv',counter,condition), 
+                     stringsAsFactors = FALSE)
+      recovered_fits[[counter]][[condition]] <- df
+    }
+  }
+  
+  # now start going through data to actually plot it:
+  for (counter_no in c(1:2)) {
+    
+    counter <- c('zero','cntr')[counter_no]
+    counter_name <- c('washout','counter')[counter_no]
+    
+    for (parameter in c('Ls','Rs','Lf','Rf')) {
+      
+      if (counter_no == 1) {
+        main <- parameter
+      } else {
+        main <- ''
+      }
+      if (parameter == 'Ls') {
+        ylab <- counter_name
+      } else {
+        ylab <- ''
+      }
+      
+      plot(-1000,-1000,
+           main=main, ylab=ylab, xlab='',
+           xlim=c(0,1),
+           ylim=c(0,3),
+           bty='n',
+           ax=F)
+      
+      lines(x = rep(ground_truth_parameters[parameter],2),
+            y = c(0.5,2.5),
+            col='black')
+      
+      for (condition in c('abrupt','gradual')) {
+        
+        condition_name <- c('abrupt'='abrupt',
+                            'gradual'='ramped')[condition]
+        
+        style_idx <- which(style$condition == condition)
+        
+        df <- recovered_fits[[counter]][[condition_name]]
+        parvals <- df[[parameter]]
+        CI <- quantile(parvals, probs=c(0.025, 0.975), names=FALSE)
+        
+        for (FUN in c(min,max)) {
+          extreme <- FUN(parvals,na.rm=TRUE)
+          lines(x = rep(extreme,2),
+                y = c(-0.4,0.4)+style_idx,
+                col=as.character(style$color_t[style_idx]))
+        }
+        
+        polX <- c(CI,rev(CI))
+        polY <- rep( c(-0.4,0.4)+style_idx, each=2)
+        polygon(polX,polY,border = NA, col=as.character(style$color_t[style_idx]))
+        
+      }
+      
+      axis(side=1, at=c(0,1))
+      
+    }
+    
   }
   
   if (target %in% c('pdf')) {
