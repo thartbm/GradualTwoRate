@@ -135,6 +135,82 @@ twoRateFit <- function(schedule, reaches, gridpoints=14, gridfits=10, checkStabi
   
 }
 
+
+getGroupFits <- function(exp=NULL, groups=NULL) {
+  
+  info <- getInfo()
+  
+  if (!is.null(exp) & is.null(groups)) {
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  alldata <- getSelectedGroupsData(groups=groups)
+  alldata <- parseData(alldata, FUN=baseline)
+  alldata <- parseData(alldata, FUN=addtrial)
+  
+  for (group in groups) {
+    
+    groupdata <- alldata[[group]]
+    participants <- unique(groupdata[['abrupt']]$participant)
+    
+    fits <- list('participant' = c(),
+                 'abrupt.Ls'   = c(),
+                 'abrupt.Lf'   = c(),
+                 'abrupt.Rs'   = c(),
+                 'abrupt.Rf'   = c(),
+                 'gradual.Ls'  = c(),
+                 'gradual.Lf'  = c(),
+                 'gradual.Rs'  = c(),
+                 'gradual.Rf'  = c()  )
+    
+    for (participant in participants) {
+      
+      for (condition in c('abrupt','gradual')) {
+        
+        pdf <- groupdata[[condition]][which(groupdata[[condition]]$participant == participant),]
+        
+        schedule <- as.numeric(pdf$rotation_deg)
+        reaches  <- as.numeric(pdf$reachdeviation_deg)
+        
+        fit <- twoRateFit(schedule=schedule,
+                          reaches=reaches)
+        
+        for (parameter in c('Ls','Lf','Rs','Rf')) {
+          fits[[sprintf('%s.%s',condition,parameter)]] <- c(fits[[sprintf('%s.%s',condition,parameter)]], fit[parameter])
+        }
+        
+      }
+      
+      fits[['participant']] <- c(fits[['participant']], participant)
+      print(participant)
+    }
+    
+    for (condition in c('abrupt','gradual')) {
+      
+      schedule <- groupdata[[condition]]$rotation_deg[which(groupdata[[condition]]$participant == participants[1])]
+      
+      reaches <- as.numeric( aggregate(reachdeviation_deg ~ trial, data=groupdata[[condition]], FUN=mean)$reachdeviation_deg )
+      
+      fit <- twoRateFit(schedule=schedule,
+                        reaches=reaches)
+      
+      for (parameter in c('Ls','Lf','Rs','Rf')) {
+        fits[[sprintf('%s.%s',condition,parameter)]] <- c(fits[[sprintf('%s.%s',condition,parameter)]], fit[parameter])
+      }
+      
+    }
+    
+    fits[['participant']] <- c(fits[['participant']], -1)
+    
+    write.csv(as.data.frame(fits), 
+              sprintf('data/%s/twoRateFits.csv',group), 
+              row.names = FALSE,
+              quote = FALSE)
+    
+  }
+  
+}
+
 # One-Rate model -----
 
 oneRateModel <- function(par, schedule) {
@@ -566,3 +642,298 @@ modelMSEs <- function(exp=NULL, groups=NULL) {
     
 }
 
+# exponential decay model -----
+
+
+
+asymptoticDecayModel <- function(par, schedule) {
+  
+  # the process and error states are initialized at 0:
+  Pt <- 0
+  Et <- 0
+  
+  # the total output is stored here:
+  output <- c()
+  
+  for (t in c(1:length(schedule))) {
+    
+    Pt <- Pt - (par['lambda'] * Et)
+    
+    # now we calculate what the previous error will be for the next trial:
+    if (is.na(schedule[t])) {
+      Et <- 0
+    } else {
+      Et <- Pt + (schedule[t] * par['N0'])
+    }
+    #print(Et)
+    # at this point we save the process state in our vector:
+    output <- c(output, Pt)
+    
+  }
+  
+  # done all the trials: return output
+  return(data.frame(output))
+  
+}
+
+asymptoticDecayMSE <- function(par, schedule, signal) {
+  
+  MSE <- mean((asymptoticDecayModel(par, schedule)$output - signal)^2, na.rm=TRUE)
+  
+  return( MSE )
+  
+}
+
+
+asymptoticDecayFit <- function(schedule, signal, gridpoints=10, gridfits=5) {
+  
+  # set the search grid:
+  parvals <- seq(1/gridpoints/2,1-(1/gridpoints/2),1/gridpoints)
+  
+  maxAsymptote <- 2*max(abs(signal), na.rm=TRUE)
+  
+  # define the search grid:
+  searchgrid <- expand.grid('lambda' = parvals, 
+                            'N0'     = parvals * maxAsymptote)
+  
+  # evaluate starting positions:
+  MSE <- apply(searchgrid, FUN=asymptoticDecayMSE, MARGIN=c(1), schedule=schedule, signal=signal)
+  
+  # testing if optimx is installed and making it available it so:
+  optimxInstalled <- require("optimx")
+  
+  if (optimxInstalled) {
+    
+    # run optimx on the best starting positions:
+    allfits <- do.call("rbind",
+                       apply( data.frame(searchgrid[order(MSE)[1:gridfits],]),
+                              MARGIN=c(1),
+                              FUN=optimx::optimx,
+                              fn=asymptoticDecayMSE,
+                              method='L-BFGS-B',
+                              lower=c(0,0),
+                              upper=c(1,maxAsymptote),
+                              schedule=schedule,
+                              signal=signal ) )
+    
+    # pick the best fit:
+    win <- allfits[order(allfits$value)[1],]
+    
+    # return the best parameters:
+    return(unlist(win[1:2]))
+    
+  } else {
+    
+    cat('(consider installing optimx, falling back on optim now)\n')
+    
+    # use optim with Nelder-Mead after all:
+    allfits <- do.call("rbind",
+                       apply( data.frame(searchgrid[order(MSE)[1:gridfits],]),
+                              MARGIN=c(1),
+                              FUN=optim,
+                              fn=asymptoticDecayMSE,
+                              method='Nelder-Mead',
+                              schedule=schedule,
+                              signal=signal ) )
+    
+    # pick the best fit:
+    win <- allfits[order(unlist(data.frame(allfits)[,'value']))[1],]
+    
+    # return the best parameters:
+    return(win$par)
+    
+  }
+  
+}
+
+
+getLearningRates <- function(exp=NULL, groups=NULL) {
+  
+  info <- getInfo()
+  
+  if (is.null(groups)) {
+    groups <- info$group[which(info$experiment == exp)]
+  }
+  
+  data <- getSelectedGroupsData(groups=groups)
+  data <- parseData(data, FUN=baseline)
+  data <- parseData(data, FUN=normalize)
+  data <- parseData(data, FUN=addtrial)
+  data <- parseData(data, FUN=addphase)
+
+  for (group in groups) {
+    group_data <- data[[group]]
+    abrupt <- group_data[['abrupt']]
+    
+    gdf <- getVersion(group=group)
+    gdf <- subset(gdf, select = -c(version)) 
+    gdf$lambda <- NA
+    gdf$N0 <- NA
+    
+    participants <- unique(abrupt$participant)
+    
+    gdf <- gdf[which(gdf$participant %in% participants),]
+    
+    for (participant in participants) {
+      apd <- as.numeric( abrupt[which(abrupt$participant == participant & abrupt$phase == 2),'reachdeviation_deg'] )
+      fit <- asymptoticDecayFit(schedule=rep(-1,length(apd)),
+                                signal=apd,
+                                gridpoints=15,
+                                gridfits=5)
+      gdf$lambda[which(gdf$participant == participant)] <- fit['lambda']
+      gdf$N0[which(gdf$participant == participant)] <- fit['N0']
+    }
+    
+    write.csv(gdf, 
+              file=sprintf('data/%s/abrupt_learningrates.csv',group),
+              row.names = FALSE,
+              quote = FALSE)
+    
+  }
+  
+}
+
+
+# parameter recovery -----
+
+parameterRecoverySimulation <- function(iterations=1000) {
+  
+  # we will test if parameters are more recoverable from schedules with actual counter-rotation phases
+  # to do this, we simulate data, based on 4 schedules:
+  
+  schedules <- list()
+  schedules[['zero']] <- list()
+  schedules[['cntr']] <- list()
+  schedules[['zero']][['abrupt']] <- c(rep(0,40),rep(-45,120),                                rep(0,20), rep(NA,40)) 
+  schedules[['zero']][['ramped']] <- c(rep(0,40),seq(0,-45,length.out = 61)[1:60],rep(-45,60),rep(0,20), rep(NA,40)) 
+  schedules[['cntr']][['abrupt']] <- c(rep(0,40),rep(-45,120),                                rep(45,20),rep(NA,40))
+  schedules[['cntr']][['ramped']] <- c(rep(0,40),seq(0,-45,length.out = 61)[1:60],rep(-45,60),rep(45,20),rep(NA,40))
+  
+  # we will simulate noise, based on data from the rotation magnitude experiment
+  # and add the same noise to model-generated data based on all four perturbation schedules
+  # and then fit the model to that data
+  
+  # here we get that noise:
+  info   <- getInfo()
+  groups <- as.character(info$group[which(info$experiment == 1)])
+
+  alldata <- getSelectedGroupsData(groups=groups)
+  alldata <- parseData(alldata, FUN=baseline)
+  alldata <- parseData(alldata, FUN=addtrial)
+  
+  MSEs <- c()
+  
+  for (group in groups) {
+    group_fits <- read.csv(sprintf('data/%s/twoRateFits.csv',group), stringsAsFactors = FALSE)
+    group_idx <- which(group_fits$participant == -1)
+    
+    for (condition in c('abrupt','gradual')) {
+      
+      # we read the parameters for the group for this condition:
+      fit <- c('Ls'=NA,'Lf'=NA,'Rs'=NA,'Rf'=NA)
+      for (parameter in names(fit)) {
+        column <- sprintf('%s.%s',condition,parameter)
+        fit[parameter] <- as.numeric(group_fits[group_idx,column])
+      }
+      
+      # we get the average reaches and the perturbation schedule:
+      reaches <- as.numeric(unlist(aggregate(reachdeviation_deg ~ trial, data=alldata[[group]][[condition]], FUN=mean, na.rm=TRUE)$reachdeviation_deg))
+      schedule <- alldata[[group]][[condition]]$rotation_deg[which(alldata[[group]][[condition]]$participant == alldata[[group]][[condition]]$participant[1])]
+      
+      MSE <- twoRateMSE(par=fit,
+                        schedule=schedule, 
+                        reaches=reaches, 
+                        checkStability=FALSE)
+      
+      MSEs <- c(MSEs, MSE)
+      
+    }
+  }
+  
+  # the square root of the average MSE should be a reasonable estimate of the 
+  # level of variation we can expect in a group (standard deviation)
+  std <- sqrt(mean(MSEs))
+  
+  # we want ground truth parameters in this vector:
+  ground_truth_parameters <- c('Ls'=NA,
+                               'Lf'=NA,
+                               'Rs'=NA,
+                               'Rf'=NA)
+  
+  # we'll use the young45 group's abrupt fit for the group:
+  y45fits <- read.csv('data/young45/twoRateFits.csv', 
+                      stringsAsFactors = FALSE)
+  
+  # and put those parameters in our vector:
+  group_idx <- which(y45fits$participant == -1)
+  for (par in names(ground_truth_parameters)) {
+    column <- sprintf('abrupt.%s',par)
+    ground_truth_parameters[par] <- as.numeric(unlist(y45fits[group_idx,column]))
+  }
+  
+  # now we want the basic reaches without noise, which will always be the same:
+  reaches <- list('zero'=list('abrupt'=c(),'ramped'=c()),'cntr'=list('abrupt'=c(),'ramped'=c()))
+  for (counter in c('zero','cntr')) {
+    for(condition in c('abrupt','ramped')) {
+      reaches[[counter]][[condition]] <- twoRateModel( par=ground_truth_parameters,
+                                                       schedule = schedules[[counter]][[condition]])$total
+    }
+  }
+  
+  # we set the seed to some fixed, but unknown value:
+  set.seed(sum(c(unique(alldata[[groups[1]]][['abrupt']]$participant), 
+                 unique(alldata[[groups[2]]][['abrupt']]$participant) )))
+  
+  # here we'll store the results of the simulation:
+  empty <- list('Ls'=rep(NA,iterations),
+                'Lf'=rep(NA,iterations),
+                'Rs'=rep(NA,iterations),
+                'Rf'=rep(NA,iterations))
+  recovered_fits <- list('zero'=list('abrupt'=empty,
+                                     'ramped'=empty),
+                         'cntr'=list('abrupt'=empty,
+                                     'ramped'=empty))
+  
+  # then we loop through the iterations:
+  for (bs in c(1:iterations)) {
+    
+    # first, let's make some noise:
+    noise <- rnorm(220, mean=0, sd=std)
+    
+    for (counter in c('zero','cntr')) {
+      for(condition in c('abrupt','ramped')) {
+        
+        fit <- twoRateFit(schedule = schedules[[counter]][[condition]],
+                          reaches  =   reaches[[counter]][[condition]]+noise)
+        
+        for (par in names(fit)) {
+          parval <- fit[par]
+          names(parval) <- c()
+          recovered_fits[[counter]][[condition]][[par]][bs] <- parval
+        }
+
+      }
+    }
+    cat(sprintf('finished iteration: %d / %d\n',bs,iterations))
+  }
+
+
+  # by repeating this 1000 times for a given set of parameter values
+  # we can get confidence intervals for how far off the fitted parameter values are
+  # in each of the four perturbation schedules
+  
+  for (counter in c('zero','cntr')) {
+    for(condition in c('abrupt','ramped')) {
+      df <- as.data.frame(recovered_fits[[counter]][[condition]])
+      #print(recovered_fits[[counter]][[condition]])
+      #print(data.frame(recovered_fits[[counter]][[condition]]))
+      write.csv(df, 
+                file=sprintf('data/young45/recovered_fits_%s_%s.csv',counter,condition), 
+                row.names = FALSE, 
+                quote = FALSE)
+    }
+  }
+  
+  # and we're done with the simulation... now it still needs to be interpreted
+  
+}
