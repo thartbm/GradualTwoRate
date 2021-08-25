@@ -4,6 +4,9 @@ output:
   word_document: default
   pdf_document: default
   html_notebook: default
+bibliography: bibliography.bib
+csl: journal-of-vision.csl
+link-citations: yes
 ---
 
 In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually leads to more implicit learning. In 5 groups of people, including a cohort of participants with mid cerebellar damage, and older participanrs (age-matched controls) doing various paradigms in within-subject designs, we still failed to confirm this.
@@ -16,25 +19,27 @@ Then we access all our custom functions:
 
 ```{r setup, echo=FALSE}
 # has some functions to process the raw data to get it all into a shared format ready for OSF:
-# data.R # we don't need them functions anymore
 
-# this has some common functions, for getting data from OSF, and describing the groups:
-source('R/common.R')
+# this collected the data, and partially unified variables/format:
+# sources('R/data.R')
+# the output is provided on OSF, code left as a record
 
-# this function provides access to information about the participants, e.g. demographics and whether or not they learned:
-source('R/participants.R')
-
-# this is for (pre)processing the raw data:
+# this is for (pre)processing the data, and it completes the standardization of data:
 source('R/process.R')
 
-# this is for selecting trials and participants:
-source('R/select.R')
+# this has some common functions:
+# functions decsribing groups, styles, etc
+# getting data from OSF
+# selecting trials & participants
+# parsing data (normalizing, blocking, etc)
+source('R/common.R')
 
 # this has functions to make figures:
 source('R/figures.R')
 
 # this file has functions to run and test the two-rate model:
-#source('R/model.R')
+source('R/models.R')
+# also has an asymptotic decay model for learning rates and an unused one-rate model
 
 # this file has functions that reproduce the statistical analyses:
 source('R/statistics.R')
@@ -50,8 +55,13 @@ Then we process the reaching data to get reach deviations for every trial. The f
 
 Right now, the reach deviation at a quarter of the home-target distance is used as a cut-off point, using the first sample beyond this distance. There is built in functionality for other cut-off points, although we didn't test it on this data. For example, the first peak in the velocity profile could also be used (based on a smooth-spline interpolation), or a set distance in centimeters.
 
-```{r pre-process}
+```{r pre-process, eval=FALSE}
+# each of these commands takes a while
+# since the standard output is already downloaded from OSF, this step is skipped
 #getReachDeviations()
+#getGroupFits(groups=getInfo()$group)
+#bootstrapFits(groups=getInfo()$group)
+#modelMSEs(groups=getInfo()$group)
 ```
 
 The data folders for each of the 5 groups now have 2 extra files: one with reach deviations for all participants when doing the abrupt condition and one when doing the gradual condition.
@@ -78,7 +88,9 @@ Some studies suggest that explicit and implicit learning map onto the fast and s
 
 # Experiment 1: Rotation Size and Introduction
 
-If the fast process corresponds to explicit learning, this leads to a number of predictions. First, we can test the effect of the magnitude of the rotation. Since we found little to no explicit learning with a 30 degree rotation, and significant explicit learning with a 60 degree rotation previously [@Modchalingam2019] we use these two rotations here. Second, if a gradual introduction of the rotation leads to more implicit learning, this should dampen the fast process (and boost the slow process). Finally, if a gradual and abrupt rotation lead to the same amount of adaptation by the end of training, the rebound in an error-clamp phase should be different if the fast and slow process contribute differently in these two groups.
+If the fast process corresponds to explicit learning, this leads to a number of predictions. First, we can test the effect of the magnitude of the rotation, which we do here. Since we found little to no explicit learning with a 30 degree rotation, and significant explicit learning with a 60 degree rotation previously [@Modchalingam2019] we use these two rotations here. Second, if a gradual introduction of the rotation leads to more implicit learning, this should dampen the fast process (and boost the slow process). Finally, if a gradual and abrupt rotation lead to the same amount of adaptation by the end of training, the rebound in an error-clamp phase should be different if the fast and slow process contribute differently in these two groups.
+
+## Data Figure
 
 First, we look at the group data, by plotting it. Then we check the asymptotic level of adaptation, and the absolute size of the rebounds in the error-clamp phases using first an ANOVA and then t-tests. Finally we fit the two-rate model to compare fitted parameter values between conditions.
 
@@ -88,21 +100,73 @@ plotExpBehavior(exp=1, target='inline', version=3)
 
 Mostly, when comparing the two conditions (with ramped in purple and abrupt in orange) there seems not to be an effect of how the rotation is introduced on the adaptation at the end of the initial rotation, or in the error clamped phase. There might be an effect of rotation size on rebound (reach deviations in the error-clamped phase).
 
+## Order Effects
+
+However, before investigating any of these question, we need to make sure there is no order effect. Since these are all within-subject experiments, participants do both conditions, and it could be that first learning the rotation when it is ramped, might help learn it when introduced abruptly in the second session. We fit a simple asymptotic decoy model with two parameters: an asymptotic level of adaptation (N0) and a learning rate (lambda), which expresses how quickly the asymptotic level of adaptation is achieved. The models are fit on normalized reach deviations, so that they are all scaled between 0 and 1 (instead of between 0 and 30 or 0 and 60)  We can only get learning rates from the abrupt conditions, which means we can compare them between the participants who do abrupt first and those who did ramped first.
+
+```{r}
+testOrderEffects(exp=1)
+```
+
+There is no effect of first condition across the two groups, no effect of group and no interaction. We can now combine all data to look into differences between abrupt and ramped conditions.
+
+## Asymptotic aptation and rebound
+
 Let's do our planned ANOVA's. First one on the whole data set, a repeated measures ANOVA on normalized reach deviation, using block (rotated or clamped) and condition (abrupt or ramped) as within-subject factors and rotation size (30 or 60 degrees) as between-subjects factor.
 
 ```{r exp1-anova}
 doExpANOVAs(exp=1)
 ```
 
-Not surprisingly, there is an effect of block (rotated or clamped) and as we suspected from looking at the figure there is an effect of group, which interacts with block. This can be explained by a larger rebound in the 30 degree group, which makes sense if learning is more implicit with 30 degrees than with 60 degrees. However, the main take-away is that there is no main effect of condition, nor does it interact with any of the other variables. This would mean that the way the rotation is introduced (abrupt or ramped) has no effect on the asymptotic level of adaptation here, nor does it affect the size of the spontaneous rebound.
+Not surprisingly, there is an effect of block (rotated or clamped) and as we suspected from looking at the figure there is an effect of group, which interacts with block. This can be explained by a larger rebound in the 30 degree group, which makes sense if learning is more implicit with 30 degrees than with 60 degrees. However, the main take-away is that there is no main effect of condition, nor does condition interact with any of the other variables. This would mean that the way the rotation is introduced (abrupt or ramped) has no effect on the asymptotic level of adaptation here, nor does it affect the size of the spontaneous rebound.
+
+## Equivalance of conditions
 
 We take this one step further and test, if -across the whole experiment- the difference between reach deviations in the abrupt and ramped conditions (separate for each block) may even support the null hypothesis. To do this we run a simple Bayesian analysis:
 
 ```{r}
-doConDiffBF(exp=1)
+conditionBayesFactors(exp=1)
 ```
 
-Both using the data from the rotated block, and from the clamped block, there is moderate support for the null hypothesis.
+Both using the data from the rotated block (BF=0.2017), and from the clamped block (BF=0.1807), there is moderate support for the null hypothesis.
+
+Split by group, we get these numbers:
+
+
+```{r}
+conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==1)])
+```
+
+All of these are below 1/3, so each condition provides moderate support for the null-hypothesis: there is no difference in asymptotic adaptation or rebound depending on how the rotation is introduced. Since there is no difference in asymptotic adaptation, the absence of any difference in rebounds means there is no effect of how the rotation is introduced (abrupt or ramped) on implicit adaptation.
+
+## Model fits
+
+Now we also want to see if the two-rate model is different between the abrupt and ramped conditions. First we look at the group fits.
+
+```{r, fig.width=6,fig.height=7}
+plotExpModelFits(exp=1)
+```
+
+In the data from the 60 degree group, it could be that the bootstrapped fits from the abrupt condition, can not explain the gradual data  (MSE distribution on purple line) compared to how well the gradual fits explain the gradual data (yellow line). The difference is in the black line. Let's have a look at the 95% confidence intervals:
+
+```{r}
+crossConditionMSEs(exp=1)
+```
+
+Zero difference falls outside the confidence interval, so that we now look at the model parameter values to see if there is any difference in the parameter values:
+
+```{r fig.width=7, fig.height=4}
+plotExpModelParameters(exp=1)
+```
+
+The distributions of parameter values overlap very well, let's look at the confidence intervals of the differences:
+
+```{r}
+conditionParameterDiffs(exp=1)
+```
+
+Zero is included in all confidence intervals, so that we can not conclude that parameters are different between the two conditions.
+
 
 # Experiment 2: Mild Cerebellar Ataxia and Age
 
@@ -115,7 +179,21 @@ Let's have a look at the data:
 plotExpBehavior(exp=2, target='inline', version=3)
 ```
 
-Notice again that instead of a counter rotation (which would lead to errors close to 90 degrees: possibly hard to handle by people with mild cerebellar ataxia) there is another aligned phase. In the smaller graphs at the bottom it becomes clearer that again it seem like there is no effect of group (mild cerebellar ataxia, age-matched controls or younger controls) nor any effect of condition (abrupt or ramped) on either the asymptotic level of adaptation in the first rotated phase or on the size of the rebound (reach deviations in the error-clamped phase).
+Notice again that instead of a counter rotation (which would lead to errors close to 90 degrees: possibly hard to handle by people with mild cerebellar ataxia) there is another aligned phase.
+
+## Order effects
+
+As before, this is a within-subject experiment (all participants do both the ramped and the abrupt condition), and we want to make sure there is no order effect.
+
+```{r}
+testOrderEffects(exp=2)
+```
+
+There is no effect of group, no effect of order, and there is no interaction either. We can now combine the data and ignore task order in further analyses.
+
+## Asymptotic adaptation and rebounds
+
+In the smaller graphs at the bottom of the figure above it becomes clearer that again it seem like there is no effect of group (mild cerebellar ataxia, age-matched controls or younger controls) nor any effect of condition (abrupt or ramped) on either the asymptotic level of adaptation in the first rotated phase or on the size of the rebound (reach deviations in the error-clamped phase).
 
 Let's check this with an ANOVA:
 
@@ -123,22 +201,66 @@ Let's check this with an ANOVA:
 doExpANOVAs(exp=2)
 ```
 
-There is a main effect of block (not surprising), but no other effects are significant. That means that we _can not reject_ the null hypothesis (that there is no effect of how a rotation is introduced). But, like we did in the rotation-size experiment, we want to see if there is actually support for the null hypothesis:
+There is a main effect of block (not surprising), but no other effects are significant. That means that we _can not reject_ the null hypothesis (that there is no effect of how a rotation is introduced).
+
+## Equivalance of conditions
+
+But, like we did in the rotation-size experiment, we want to see if there is actually support for the null hypothesis:
 
 ```{r}
-doConDiffBF(exp=2)
+conditionBayesFactors(exp=2)
 ```
 
-For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis, but there is in the clamped block.
+For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis, but there is in the clamped block. What about the separate groups in exp 2?
+```{r}
+conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==2)])
+```
+
+These evidence is less strong for each group, but notice that all Bayes Factors are below 1, so that more powerfull experiments (or larger data sets) would probably lower them. The combined data is fairly clear anyway.
 
 Of course, we can also combine all 5 groups across the two experiments:
 
 ```{r}
-doConDiffBF(exp=0, groups=getInfo()$group)
+conditionBayesFactors(exp=0, groups=getInfo()$group)
 # uses a trick
 # as long as you set groups, they are used
 # and as long as you set exp, one overall results is returned
 ```
 
-With more evidence, the results become clearer: across the board, we have moderate evidence that the way the rotation is introduced does not affect asymptotic level of adaptation, nor on implicit adaptation as measured by the magnitude of the rebound.
+With more evidence, the results become only a little clearer: across the board, we have moderate evidence that the way the rotation is introduced does not affect asymptotic level of adaptation, nor on implicit adaptation as measured by the magnitude of the rebound.
 
+## Model fits
+
+For this experiment we also still want to test the two-rate model. First a figure.
+
+```{r, fig.width=6,fig.height=8}
+plotExpModelFits(exp=2)
+```
+
+Let's see the confidence interval of the cross-fit quality:
+
+```{r}
+crossConditionMSEs(exp=2)
+```
+
+So zero is not included in the 95% confidence interval in all groups, which means that model fits are not equivalent between conditions (the parameters from the abrupt condition do not predict the gradual condition as well as the parameters fit on the gradual data). This means we will look at the parameter values themselves.
+
+```{r}
+plotExpModelParameters(exp=2)
+```
+
+The lines depict the distribution of bootstrapped parameters and the dots the parameter values for individual participants. We will check the confidence intervals of the differences in parameter values:
+
+```{r}
+conditionParameterDiffs(exp=2)
+```
+
+In the two older groups (mild cerebellar ataxia, and their age-matched controls) the 95% confidence interval of differences in values of parameter `Lf` between abrupt and ramped conditions does not include zero. This shows that in the ramped condition, these groups have a higher learning rate for the fast process. However the slow process shows no differences. In the younger group, the parameters are also equivalent.
+
+# Conclusion
+
+What does this mean? The models show a difference, in parameter values between conditions. However, this difference is not in the slow process, but the fast process. Furthermore, if the fast process reflects explicit learning, than we would expect the fast learning rate to be decreased in the ramped condition (that is supposed to evoke more implicit learning), but we find the opposite. Since there are no behavioral differences, this might simply be an oddity of the model rather than reflect any actual neural/adaptation processes.
+
+An alternative explanation is that the perturbation schedule used in the second experiment leads to lower parameter recoverability, and perhaps accidental differences in fits.
+
+# References
