@@ -502,7 +502,7 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
   
   recovered_CIs <- list()
   for (parameter in c('Ls','Rs','Lf','Rf')) {
-    pardiffs <- as.numeric(unlist(recovered_fits[['abrupt']][[parameter]] - recovered_fits[['ramped']][[parameter]]))
+    pardiffs <- as.numeric(unlist(recovered_fits[['ramped']][[parameter]] - recovered_fits[['abrupt']][[parameter]]))
     recovered_CIs[[parameter]] <- quantile(pardiffs, 
                                            probs=c(0.025,0.975),
                                            names=FALSE)
@@ -537,23 +537,29 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
            ylim=c(0,3),
            bty='n', ax=F)
       
-      lines(c(0,0),c(0.25,2.75),col='black')
+      #lines(c(0,0),c(0.25,2.75),col='black')
+
+      CI <- recovered_CIs[[parameter]]
+      polX <- c(CI,rev(CI))
+      polY <- c(0.25,0.25,2.75,2.75)
+      polygon(polX,polY,col='#999999',border=NA)
       
       col1 <- sprintf('abrupt.%s',parameter)
       col2 <- sprintf('gradual.%s',parameter)
-      pardiffs <- as.numeric(unlist(fits[col1])) - as.numeric(unlist(fits[col2]))
+      pardiffs <- as.numeric(unlist(fits[col2])) - as.numeric(unlist(fits[col1]))
       CI <- quantile(pardiffs, probs=c(0.025,0.975), names = FALSE)
       
       polX <- c(CI,rev(CI))
-      polY <- c(1.6,1.6,2.4,2.4)
-      polygon(polX,polY,col='#e516362f',border=NA)
+      polY <- c(0.6,0.6,1,1)
+      polygon(polX,polY,col=as.character(style$color_t[2]),border=NA)
       
-      CI <- recovered_CIs[[parameter]]
-      polX <- c(CI,rev(CI))
-      polY <- c(0.6,0.6,1.4,1.4)
-      polygon(polX,polY,col='#005de42f',border=NA)
+      dX <- seq(xlim[1],xlim[2],length.out = 100)
+      dY <- density(pardiffs,from = xlim[1], to=xlim[2], n=100)$y
+      lines(dX,(dY/max(dY))+1.2,col=as.character(style$color_s[2]))
       
-      axis(side=1,at=xlim)
+
+      axis(side=1,at=xlim,padj=-1.5)
+      axis(side=1,at=0,labels=NA)
       
       # finalize inset figure
       inset.fig.idx <- inset.fig.idx + 1
