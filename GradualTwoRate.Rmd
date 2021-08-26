@@ -56,12 +56,28 @@ Then we process the reaching data to get reach deviations for every trial. The f
 Right now, the reach deviation at a quarter of the home-target distance is used as a cut-off point, using the first sample beyond this distance. There is built in functionality for other cut-off points, although we didn't test it on this data. For example, the first peak in the velocity profile could also be used (based on a smooth-spline interpolation), or a set distance in centimeters.
 
 ```{r pre-process, eval=FALSE}
+
 # each of these commands takes a while
 # since the standard output is already downloaded from OSF, this step is skipped
+
+# take the raw reaches and get reach a deviation per trial:
 #getReachDeviations()
+
+# fits the two-rate model to each participants and the group average:
 #getGroupFits(groups=getInfo()$group)
+
+# bootstrap two-rate model fit parameter values by resampling participants within each group 1000 times: 
 #bootstrapFits(groups=getInfo()$group)
+
+# calculate fit quality for the bootstrapped parameter fits:
 #modelMSEs(groups=getInfo()$group)
+
+# parameter recovery simulation using the younger control group in the second experiment as middle ground:
+#parameterRecoverySimulation()
+
+# feel free to redo any of these to check if you get the same values, 
+# or if you have changed the way that reach deviations are determined, which may change results (we didn't check)
+
 ```
 
 The data folders for each of the 5 groups now have 2 extra files: one with reach deviations for all participants when doing the abrupt condition and one when doing the gradual condition.
@@ -94,7 +110,7 @@ If the fast process corresponds to explicit learning, this leads to a number of 
 
 First, we look at the group data, by plotting it. Then we check the asymptotic level of adaptation, and the absolute size of the rebounds in the error-clamp phases using first an ANOVA and then t-tests. Finally we fit the two-rate model to compare fitted parameter values between conditions.
 
-```{r fig3, fig.width=4, fig.height=7}
+```{r fig3, fig.width=4, fig.height=7, fig.cap="**Figure 3:** reach deviations..."}
 plotExpBehavior(exp=1, target='inline', version=3)
 ```
 
@@ -104,7 +120,7 @@ Mostly, when comparing the two conditions (with ramped in purple and abrupt in o
 
 However, before investigating any of these question, we need to make sure there is no order effect. Since these are all within-subject experiments, participants do both conditions, and it could be that first learning the rotation when it is ramped, might help learn it when introduced abruptly in the second session. We fit a simple asymptotic decoy model with two parameters: an asymptotic level of adaptation (N0) and a learning rate (lambda), which expresses how quickly the asymptotic level of adaptation is achieved. The models are fit on normalized reach deviations, so that they are all scaled between 0 and 1 (instead of between 0 and 30 or 0 and 60)  We can only get learning rates from the abrupt conditions, which means we can compare them between the participants who do abrupt first and those who did ramped first.
 
-```{r}
+```{r exp1_ordereffects}
 testOrderEffects(exp=1)
 ```
 
@@ -114,7 +130,7 @@ There is no effect of first condition across the two groups, no effect of group 
 
 Let's do our planned ANOVA's. First one on the whole data set, a repeated measures ANOVA on normalized reach deviation, using block (rotated or clamped) and condition (abrupt or ramped) as within-subject factors and rotation size (30 or 60 degrees) as between-subjects factor.
 
-```{r exp1-anova}
+```{r exp1_blockanova}
 doExpANOVAs(exp=1)
 ```
 
@@ -122,9 +138,9 @@ Not surprisingly, there is an effect of block (rotated or clamped) and as we sus
 
 ## Equivalance of conditions
 
-We take this one step further and test, if -across the whole experiment- the difference between reach deviations in the abrupt and ramped conditions (separate for each block) may even support the null hypothesis. To do this we run a simple Bayesian analysis:
+We take this one step further and test, if --across the whole experiment-- the difference between reach deviations in the abrupt and ramped conditions (separate for each block) may even support the null hypothesis. To do this we run a simple Bayesian analysis:
 
-```{r}
+```{r exp1_blockBF_overall}
 conditionBayesFactors(exp=1)
 ```
 
@@ -133,7 +149,7 @@ Both using the data from the rotated block (BF=0.2017), and from the clamped blo
 Split by group, we get these numbers:
 
 
-```{r}
+```{r exp1_blockBF_bygroup}
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==1)])
 ```
 
@@ -143,30 +159,33 @@ All of these are below 1/3, so each condition provides moderate support for the 
 
 Now we also want to see if the two-rate model is different between the abrupt and ramped conditions. First we look at the group fits.
 
-```{r, fig.width=6,fig.height=7}
+```{r fig4, fig.width=6, fig.height=7, fig.cap="**Figure 4:** two-rate model fits..."}
 plotExpModelFits(exp=1)
 ```
 
+## Quality of Fit (DOES IT MAKE SENSE TO KEEP THIS?)
+
 In the data from the 60 degree group, it could be that the bootstrapped fits from the abrupt condition, can not explain the gradual data  (MSE distribution on purple line) compared to how well the gradual fits explain the gradual data (yellow line). The difference is in the black line. Let's have a look at the 95% confidence intervals:
 
-```{r}
+```{r exp1_MSEs}
 crossConditionMSEs(exp=1)
 ```
 
 Zero difference falls outside the confidence interval, so that we now look at the model parameter values to see if there is any difference in the parameter values:
 
-```{r fig.width=7, fig.height=4}
+```{r fig5, fig.width=7, fig.height=4, fig.cap="**Figure 5:** parameter differences..."}
 plotExpModelParameters(exp=1)
 ```
 
 The distributions of parameter values overlap very well, let's look at the confidence intervals of the differences:
 
-```{r}
+```{r parameterCIs}
 conditionParameterDiffs(exp=1)
 ```
 
 Zero is included in all confidence intervals, so that we can not conclude that parameters are different between the two conditions.
 
+**DO WE NEED THE PARAMETER RECOVERY CONFIDENCE INTERVALS AS WELL?**
 
 # Experiment 2: Mild Cerebellar Ataxia and Age
 
@@ -175,7 +194,7 @@ If the cerebellum implements the majority of implicit adaptation, then people wi
 Let's have a look at the data:
 
 
-```{r fig5, fig.width=4, fig.height=7}
+```{r fig6, fig.width=4, fig.height=7, fig.cap="**Figure 6:** reach deviations..."}
 plotExpBehavior(exp=2, target='inline', version=3)
 ```
 
@@ -185,7 +204,7 @@ Notice again that instead of a counter rotation (which would lead to errors clos
 
 As before, this is a within-subject experiment (all participants do both the ramped and the abrupt condition), and we want to make sure there is no order effect.
 
-```{r}
+```{r exp2_ordereffects}
 testOrderEffects(exp=2)
 ```
 
@@ -197,7 +216,7 @@ In the smaller graphs at the bottom of the figure above it becomes clearer that 
 
 Let's check this with an ANOVA:
 
-```{r exp2-anova}
+```{r exp2_block_anova}
 doExpANOVAs(exp=2)
 ```
 
@@ -207,12 +226,12 @@ There is a main effect of block (not surprising), but no other effects are signi
 
 But, like we did in the rotation-size experiment, we want to see if there is actually support for the null hypothesis:
 
-```{r}
+```{r exp2_blockBF_overall}
 conditionBayesFactors(exp=2)
 ```
 
 For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis, but there is in the clamped block. What about the separate groups in exp 2?
-```{r}
+```{r exp2_blockBF_bygroup}
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==2)])
 ```
 
@@ -220,7 +239,7 @@ These evidence is less strong for each group, but notice that all Bayes Factors 
 
 Of course, we can also combine all 5 groups across the two experiments:
 
-```{r}
+```{r bothexp_blockBF_overall}
 conditionBayesFactors(exp=0, groups=getInfo()$group)
 # uses a trick
 # as long as you set groups, they are used
@@ -233,25 +252,27 @@ With more evidence, the results become only a little clearer: across the board, 
 
 For this experiment we also still want to test the two-rate model. First a figure.
 
-```{r, fig.width=6,fig.height=8}
+```{r fig7, fig.width=6, fig.height=8, , fig.cap="**Figure 7:** two rate model fits..."}
 plotExpModelFits(exp=2)
 ```
 
+**DO WE NEED THIS AT ALL:**
+
 Let's see the confidence interval of the cross-fit quality:
 
-```{r}
+```{r exp2_MSEs}
 crossConditionMSEs(exp=2)
 ```
 
 So zero is not included in the 95% confidence interval in all groups, which means that model fits are not equivalent between conditions (the parameters from the abrupt condition do not predict the gradual condition as well as the parameters fit on the gradual data). This means we will look at the parameter values themselves.
 
-```{r}
+```{r exp2_parameter_values, fig.cap="**Figure 8:** model parameter values..."}
 plotExpModelParameters(exp=2)
 ```
 
 The lines depict the distribution of bootstrapped parameters and the dots the parameter values for individual participants. We will check the confidence intervals of the differences in parameter values:
 
-```{r}
+```{r parameter_CIs}
 conditionParameterDiffs(exp=2)
 ```
 
@@ -259,8 +280,25 @@ In the two older groups (mild cerebellar ataxia, and their age-matched controls)
 
 # Conclusion
 
-What does this mean? The models show a difference, in parameter values between conditions. However, this difference is not in the slow process, but the fast process. Furthermore, if the fast process reflects explicit learning, than we would expect the fast learning rate to be decreased in the ramped condition (that is supposed to evoke more implicit learning), but we find the opposite. Since there are no behavioral differences, this might simply be an oddity of the model rather than reflect any actual neural/adaptation processes.
+What does all this mean?
 
-An alternative explanation is that the perturbation schedule used in the second experiment leads to lower parameter recoverability, and perhaps accidental differences in fits.
+Let's list all the main findings:
+
+1. Within each group the rebounds are equivalent, and this can not be explained by different levels of adaptation as these are also equivalent.
+2. The 60 degree group has lower rebounds than the 30 degree group, confirming that implicit learning plays a larger role in 30 degree rotation adaptation.
+3. Nevertheless, the model parameters show higher slow learning in the ramped condition, but only in the mild cerebellar ataxia group.
+4. Counter to all expectations and predictions, both older groups of participants have a higher fast learning parameter in the ramped condition compared to the abrupt condition.
+
+Interpreting this, it could be that the two-rate model has a higher sensitivity to smaller differences between conditions since it fits to all the data, instead of examining selected blocks of trials. The effect of condition on slow learning in the mild cerebellar ataxia group would make sense in that context.
+
+However, the result for the fast learning parameters being higher in the ramped condition in both older groups makes little sense. While we have shown that the two-rate model's slow process does not correspond to implicit learning, we did measure explicit learning, and other studies that did find a good correspondence between the fast process and explicit learning. If we accept this previous work, and the current results, that would imply that ramped perturbation schedules sometimes (in older participants) lead to larger contributions of explicit processes to adaptation, but this does not make sense given vast bodies of research on implicit adaptation.
+
+The more parsimoneous explanation would require a re-evaluation of what the two-rate model really tells us. The first paper describing the model [@Smith2006] finds that the rebound phenomenon can only be explained by assuming there are 2 or more processes involved in motor adaptation, one of which has a different short-term retention rate (and probably learning rate). This does **not** imply however that the brain implements the model as described in this paper, down to all the equations, or that there are really only 2 processes involved in motor adaptation, or that the model's processes necessarily correspond to implicit and explicit adaptation.
+
+Rather, equating implicit and explicit adaptation processes with the slow and fast model processes seems premature. For example, the assumption derived from the hugely popular model that explicit and implicit simply add, combined with measuring only total adaptation and only implicit or explicit processes (usually explicit) will by definition lead to findings that implicit and explicit are somehow additive; either one process compensates for the other [@Miyamoto2020] or they are in competition [Albert et al., unpublished]. While the model works this way, that is obviously a simplification and it does not necessarily mean that the brain works that way. Simple additivity is an unlikely function for the brain to implement.
+
+So we take the stance that work using the two-rate model does show that multiple processes with different memory time-scales are involved in motor adaptation, but not that the brain implements it's equations.
+
+We expected to find different rebounds in abrupt and ramped conditions, which could then be explained by examining the model. However, behavioral performance between groups is equivalent, but still a few model parameters _are_ different between conditions in a few groups. If only our study would find these parameter differences in the fast process, that could be explained as a statistical fluke. However, we largely replicate earlier findings [@Coltman2021] with similar parameter differences. This confirms that, while model parameters are highly recoverable, two-rate model parameter values might not be informative about real differences between conditions or groups.
 
 # References
