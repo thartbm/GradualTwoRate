@@ -415,7 +415,10 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
     layout( mat=matrix(data=c(1:(ngroups*4)), nrow = ngroups, ncol=4, byrow = TRUE) )
   }
 
-  par(mar=c(4,3,1,1))
+  par(mar=c(3.5,4,1,0.25))
+  
+  inset.figs <- list()
+  inset.fig.idx <- 1
   
   for (group in groups) {
     
@@ -428,19 +431,27 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
       
       ylims <- list(  'Ls'=c(-8,40),
                       'Rs'=c(-8,40),
-                      'Lf'=c(-3,15),
-                      'Rf'=c(-3,15)  )[[parameter]]
+                      'Lf'=c(-3,20),
+                      'Rf'=c(-3,20)  )[[parameter]]
       
-      main<-''
+      # position of inset plots:
+      p <- list( 'Ls'=c(.50, .90, .70, .95),
+                 'Rs'=c(.10, .50, .70, .95),
+                 'Lf'=c(.50, .90, .70, .95),
+                 'Rf'=c(.10, .50, .70, .95)  )[[parameter]]
+      
+      main <- ''
+      ylab <- ''
+      xlab <- ''
+      if (group == groups[1]) {
+        main <- parameter
+      }
       if (parameter == 'Ls') {
-        main<-group
+        ylab <- info$label[which(info$group == group)]
       }
-      xlab<-''
-      if (group == groups[length(groups)]) {
-        xlab<-parameter
-      }
+
       plot(-1000,-1000,
-           main=main,xlab=xlab,ylab='',
+           main=main,xlab=xlab,ylab=ylab,
            xlim=c(0,1),
            ylim=ylims,
            bty='n',
@@ -472,10 +483,82 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
         
       }
       
-      axis(side=1,at=c(0,0.5,1))
+      axis(side=1,at=c(0,1))
       
+      inset.figs[[inset.fig.idx]] <- c(grconvertX(p[1:2], from="npc", to="ndc"),
+                                       grconvertY(p[3:4], from="npc", to="ndc"))
+      inset.fig.idx <- inset.fig.idx + 1
+
     }
 
+  }
+  
+  inset.fig.idx <- 1
+  
+  
+  recovered_fits <- list()
+  recovered_fits[['abrupt']] <- read.csv('data/young45/recovered_fits_zero_abrupt.csv', stringsAsFactors=FALSE)
+  recovered_fits[['ramped']] <- read.csv('data/young45/recovered_fits_zero_ramped.csv', stringsAsFactors=FALSE)
+  
+  recovered_CIs <- list()
+  for (parameter in c('Ls','Rs','Lf','Rf')) {
+    pardiffs <- as.numeric(unlist(recovered_fits[['abrupt']][[parameter]] - recovered_fits[['ramped']][[parameter]]))
+    recovered_CIs[[parameter]] <- quantile(pardiffs, 
+                                           probs=c(0.025,0.975),
+                                           names=FALSE)
+  }
+  
+
+  for (group in groups) {
+    
+    group_idx <- which(info$group == group)
+    group_label <- info$label[group_idx]
+    
+    fits <- read.csv(sprintf('data/%s/bootstrapped_TwoRateFits.csv',group),stringsAsFactors = F)
+    
+    for (parameter in c('Ls','Rs','Lf','Rf')) {
+      
+      # create inset figure
+      op <- par( fig=inset.figs[[inset.fig.idx]], 
+                 new=TRUE, 
+                 mar=rep(0, 4), 
+                 cex=0.5)
+      
+      xlim <- c(-.1,.1)
+      if (parameter %in% c('Lf','Rf')) {
+        xlim <- c(-.3,.3)
+      }
+      if (parameter == 'Rs') {
+        xlim <- c(-.02,.02)
+      }
+      
+      plot(-1000,-1000,
+           xlim=xlim,
+           ylim=c(0,3),
+           bty='n', ax=F)
+      
+      lines(c(0,0),c(0.25,2.75),col='black')
+      
+      col1 <- sprintf('abrupt.%s',parameter)
+      col2 <- sprintf('gradual.%s',parameter)
+      pardiffs <- as.numeric(unlist(fits[col1])) - as.numeric(unlist(fits[col2]))
+      CI <- quantile(pardiffs, probs=c(0.025,0.975), names = FALSE)
+      
+      polX <- c(CI,rev(CI))
+      polY <- c(1.6,1.6,2.4,2.4)
+      polygon(polX,polY,col='#e516362f',border=NA)
+      
+      CI <- recovered_CIs[[parameter]]
+      polX <- c(CI,rev(CI))
+      polY <- c(0.6,0.6,1.4,1.4)
+      polygon(polX,polY,col='#005de42f',border=NA)
+      
+      axis(side=1,at=xlim)
+      
+      # finalize inset figure
+      inset.fig.idx <- inset.fig.idx + 1
+      par(op)
+    }
   }
   
   if (target %in% c('pdf')) {
@@ -495,7 +578,7 @@ plotParameterRecovery <- function(target='inline') {
   fh_i <- 2
   
   if (target=='pdf') {
-    pdf(file=sprintf('doc/Fig%d.pdf',9), width=fw_i, height=fh_i)
+    pdf(file=sprintf('doc/FigA1.pdf'), width=fw_i, height=fh_i)
   }
   
   
