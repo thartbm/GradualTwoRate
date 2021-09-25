@@ -1,8 +1,25 @@
+library('svglite')
+
+initialPerturbationPlots <- function() {
+  
+}
+
+initialScheduleModelPlots <- function() {
+  
+  # SMCL example data fit:
+  pars <- c('Ls'=0.073,
+            'Lf'=0.421,
+            'Rs'=0.998,
+            'Rf'=0.686)
+  
+  
+
+}
 
 # Convert Methods Figures -----
 
 library('rsvg')
-library(magick)
+library('magick')
 
 rePlotMethodsFigX <- function(target='inline', fig=1) {
   
@@ -11,7 +28,7 @@ rePlotMethodsFigX <- function(target='inline', fig=1) {
     return()
   }
   
-  dpi <- c(300,1200)[fig]
+  dpi <- c(300,1200)[fig] #?????????????????????????????????????????????????????????????????
   
   # read in the figure from the SVG source file:
   FigX <- magick::image_read_svg(sprintf('doc/Fig%d.svg',fig))
@@ -115,6 +132,13 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
       
       if (version %in% c(1,3) & condition=='gradual') {
         # skip making a new panel
+        
+        # add gradual schedule to figure?
+        plotschedule <- getPlotSchedule(group=group, condition=condition)
+        lines(x=plotschedule$x[2:3], 
+              y=plotschedule$y[2:3]*rotation,
+              lty=1,
+              col='#999999')
       } else {
         plot(-1000,-1000,
              main=group_label,xlab='',ylab='',
@@ -122,6 +146,16 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
              ylim=ylimits+(c(-0.1,0.1)*rotation),
              bty='n',
              ax=F)
+        # add abrupt schedule to figure?
+        plotschedule <- getPlotSchedule(group=group, condition=condition)
+        lines(x=plotschedule$x[1:7], 
+              y=plotschedule$y[1:7]*rotation,
+              lty=1,
+              col='#999999')
+        lines(x=plotschedule$x[7:8], 
+              y=plotschedule$y[7:8]*rotation,
+              lty=3,
+              col='#999999')
       }
       
       cond_idx <- which(style$condition == condition)
@@ -278,6 +312,14 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
       
       if (version %in% c(1,3,4) & condition=='gradual') {
         # skip making a new panel
+        
+        # add gradual schedule to figure?
+        # add gradual schedule to figure?
+        plotschedule <- getPlotSchedule(group=group, condition=condition)
+        lines(x=plotschedule$x[2:3], 
+              y=plotschedule$y[2:3]*rotation,
+              lty=1,
+              col='#999999')
       } else {
         plot(-1000,-1000,
              main=group_label,xlab='',ylab='',
@@ -285,6 +327,16 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
              ylim=ylimits+(c(-0.1,0.1)*rotation),
              bty='n',
              ax=F)
+        # add abrupt schedule to figure?
+        plotschedule <- getPlotSchedule(group=group, condition=condition)
+        lines(x=plotschedule$x[1:7], 
+              y=plotschedule$y[1:7]*rotation,
+              lty=1,
+              col='#999999')
+        lines(x=plotschedule$x[7:8], 
+              y=plotschedule$y[7:8]*rotation,
+              lty=3,
+              col='#999999')
       }
       
       cond_idx <- which(style$condition == condition)
@@ -314,7 +366,7 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
       lines(model$slow, col=as.character(style$color_s[cond_idx]), lty=2)
       lines(model$fast, col=as.character(style$color_s[cond_idx]), lty=3)
       
-      if (version %in% c(1,3) & condition=='gradual') {
+      if (version %in% c(1,3,4) & condition=='gradual') {
         # skip making a new panel
       } else {
         axis(side=1, at=c(1,ntrials))
@@ -689,5 +741,53 @@ plotParameterRecovery <- function(target='inline') {
   if (target %in% c('pdf')) {
     dev.off()
   }
+  
+}
+
+# support functions -----
+
+getPlotSchedule <- function(group, condition) {
+  
+  # 30/60 tablet groups:
+  #   
+  #  32 aligned
+  # 100 rotated
+  #  12 opposed
+  #  20 clamped
+  # 
+  # [40 trial ramp, still 0 on first rotated trial, max on 41st trial]
+  # 
+  # 45 munich groups:
+  #   
+  #  40 aligned
+  # 120 rotated
+  #  20 washout
+  #  40 clamped
+  # 
+  # [60 trial ramp, still 0 on first rotated trial, max on 61st trial]
+  
+  if (group %in% c('young30', 'young60')) {
+    if (condition == 'abrupt') {
+      plotschedule <- list( 'x' = c(1, 33, 33, 133, 133, 145, 145, 164),
+                            'y' = c(0,  0,  1,   1,  -1,  -1,   0,   0)   )
+    }
+    if (condition == 'gradual') {
+      plotschedule <- list( 'x' = c(1, 33, 73, 133, 133, 145, 145, 164),
+                            'y' = c(0,  0,  1,   1,  -1,  -1,   0,   0)   )
+    }
+  }
+  
+  if (group %in% c('young45', 'older45', 'mcebat45')) {
+    if (condition == 'abrupt') {
+      plotschedule <- list( 'x' = c(1, 41, 41, 161, 161, 181, 181, 220),
+                            'y' = c(0,  0,  1,   1,   0,   0,   0,   0)   )
+    }
+    if (condition == 'gradual') {
+      plotschedule <- list( 'x' = c(1, 41, 101, 161, 161, 181, 181, 220),
+                            'y' = c(0,  0,   1,   1,   0,   0,   0,   0)   )
+    }
+  }
+  
+  return(plotschedule)
   
 }

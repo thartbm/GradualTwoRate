@@ -9,7 +9,7 @@ library('osfr')
 sort30s <- function() {
   
   group <- 'young30'
-    
+  
   participants <- c(1:26,28:31)
     
   for (ppno in participants) {
