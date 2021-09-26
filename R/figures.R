@@ -1,20 +1,298 @@
 library('svglite')
 
-initialPerturbationPlots <- function() {
+initialPerturbationSVGs <- function() {
+  
+  a <- seq(from=0, 
+           to=2*pi, 
+           length.out = 91)
+  dot <- list()
+  dot$x <- cos(a)
+  dot$y <- sin(a)
+  
+  # 2 workspaces with:
+  # targets + rotated reaches?
+  
+  # whata size is each workspace?? 4:3? sure
+  svglite(filename='doc/methods1_exp1_workspace.svg',
+          width=4, height=3,
+          bg="#999999",
+          fix_text_size = FALSE)
+  
+  par(mai=c(0,0,0,0))
+  
+  home_target_distance = 10.5
+  cursor_radius = 0.72/2 # scaled screen so it matches real tablet size
+  rotations <- (c(60,30,-30,-60)/180)*pi
+  
+  plot(-1000,-1000,
+       main='',xlab='',ylab='',
+       ylim=c(-5,16),xlim=c(-14,14),
+       bty='n',ax=F,asp=1)
+  
+  target_degs <- c(40,50,130,140)
+  target_rads <- (target_degs/180)*pi
+  
+  targetx <- c(0,cos(target_rads)*home_target_distance)
+  targety <- c(0,sin(target_rads)*home_target_distance)
+  
+  for (t_idx in c(1:5)) {
+    
+    if (t_idx == 2) {
+      polygon(x=(dot$x*cursor_radius)+targetx[t_idx],
+              y=(dot$y*cursor_radius)+targety[t_idx],
+              border=NA,
+              col='#FFFFFF')
+      
+    }# else {
+      lines(x=(dot$x*cursor_radius)+targetx[t_idx],
+            y=(dot$y*cursor_radius)+targety[t_idx],
+            #border=NA,
+            col='#FFFFFF')
+    #}
+  }
+  
+  text(0,-2,'home')
+  for (td in target_degs) {
+    text(x=cos(pi*(td/180))*1.2*home_target_distance,
+         y=sin(pi*(td/180))*1.2*home_target_distance,
+         sprintf('%d°',td))
+  }
+  
+  
+  rot_target <- mean(target_rads[3:4])
+  lines(x = cos(rot_target)*(c(0.1,0.9)*home_target_distance),
+        y = sin(rot_target)*(c(0.1,0.9)*home_target_distance),
+        col='#FF0000')
+  polygon(x = cos(rot_target+(c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+          y = sin(rot_target+(c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+          col='#FF0000', border=NA)
+  
+  for (rot in rotations) {
+    lines(x = cos(rot_target+rot)*(c(0.1,0.9)*home_target_distance),
+          y = sin(rot_target+rot)*(c(0.1,0.9)*home_target_distance),
+          col='#FF0000',
+          lty=2)
+    polygon(x = cos(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+            y = sin(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+            col='#FF0000', border=NA)
+    
+  }
+  
+  
+  dev.off()
+  
+  
+  
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  
+  svglite(filename='doc/methods1_exp2_workspace.svg',
+          width=4, height=3,
+          bg="#999999",
+          fix_text_size = FALSE)
+  
+  par(mai=c(0,0,0,0))
+  
+  home_target_distance = 12
+  cursor_radius = 1/2
+  rotations <- (c(45)/180)*pi
+  
+  plot(-1000,-1000,
+       main='',xlab='',ylab='',
+       ylim=c(-5,16),xlim=c(-14,14),
+       bty='n',ax=F,asp=1)
+  
+  target_degs <- c(50,60,120,130)
+  target_rads <- (target_degs/180)*pi
+  
+  targetx <- c(0,cos(target_rads)*home_target_distance)
+  targety <- c(0,sin(target_rads)*home_target_distance)
+  
+  for (t_idx in c(1:5)) {
+    
+    if (t_idx == 2) {
+      polygon(x=(dot$x*cursor_radius)+targetx[t_idx],
+              y=(dot$y*cursor_radius)+targety[t_idx],
+              border=NA,
+              col='#FFFFFF')
+      
+    }# else {
+      lines(x=(dot$x*cursor_radius)+targetx[t_idx],
+            y=(dot$y*cursor_radius)+targety[t_idx],
+            #border=NA,
+            col='#FFFFFF')
+    #}    
+  }
+  text(0,-2,'home')
+  for (td in target_degs) {
+    text(x=cos(pi*(td/180))*1.2*home_target_distance,
+         y=sin(pi*(td/180))*1.2*home_target_distance,
+         sprintf('%d°',td))
+  }
+  
+  rot_target <- mean(target_rads[3:4])
+  lines(x = cos(rot_target)*(c(0.1,0.9)*home_target_distance),
+        y = sin(rot_target)*(c(0.1,0.9)*home_target_distance),
+        col='#FF0000')
+  polygon(x = cos(rot_target+(c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+          y = sin(rot_target+(c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+          col='#FF0000', border=NA)
+  for (rot in rotations) {
+    lines(x = cos(rot_target+rot)*(c(0.1,0.9)*home_target_distance),
+          y = sin(rot_target+rot)*(c(0.1,0.9)*home_target_distance),
+          col='#FF0000',
+          lty=2)
+    # x <- cos(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance)
+    # x <- c(x, x[1])
+    # y <- sin(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance)
+    # y <- c(y, y[1])
+    polygon(x = cos(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+            y = sin(rot_target+(rot+c(0,0.035,0,-0.035,0)))*(c(0.92,0.85,0.87,0.85,0.92)*home_target_distance),
+            col='#FF0000', border=NA)
+    
+  }
+  
+  
+  dev.off()
   
 }
 
-initialScheduleModelPlots <- function() {
+initialScheduleModelSVGs <- function() {
+  
+  # 2 schedules + example fit?
+  style <- getStyle()
+  
+  svglite(filename='doc/methods2_exp1_schedules.svg',
+          width=7, height=3,
+          fix_text_size = FALSE)
+  
+  par(mar=c(4,3,0.1,0.1))
+  
+  sched <- getPlotSchedule(group='young30', condition='abrupt')
+  plot(sched$x[1:7],
+       sched$y[1:7],
+       type='l',
+       xlim=c(0,165),ylim=c(-1.2,1.2),
+       main='',xlab='',ylab='',
+       col='black',lty=1,
+       bty='n',ax=F)
+  
+  lines(sched$x[7:8],
+        sched$y[7:8],
+         col='black',lty=3)
+  
+  for (idx in c(1:4)) {
+    
+    lab <- c('aligned','rotated','opposed','clamped')[idx]
+    x <- mean(sched$x[(((idx-1)*2)+1):(idx*2)])
+    y <- c(0.15, 1.15, -1.15, 0.15)[idx]
+    text(x,y,lab)
+    
+  }
+  
+  tickx <- unique(sched$x)
+  tickx[2:4] <- tickx[2:4]-1
+  
+  sched <- getPlotSchedule(group='young30', condition='gradual')
+  
+  lines(sched$x[2:3],
+        sched$y[2:3],
+        col='black',lty=2)
+  
+  
+  axis(1, at=tickx, cex.axis=0.8)
+  
+  dev.off()
+  
+  
+  
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  
+  svglite(filename='doc/methods2_exp2_schedules.svg',
+          width=7, height=3,
+          fix_text_size = FALSE)
+  
+  par(mar=c(4,3,0.1,0.1))
+  
+  sched <- getPlotSchedule(group='young45', condition='abrupt')
+  plot(sched$x[1:7],
+       sched$y[1:7],
+       type='l',
+       xlim=c(0,221),ylim=c(-.2,1.2),
+       main='',xlab='',ylab='',
+       col='black',lty=1,
+       bty='n',ax=F)
+  
+  lines(sched$x[7:8],
+        sched$y[7:8],
+        col='black',lty=3)
+  
+  for (idx in c(1:4)) {
+    
+    lab <- c('aligned','rotated','washout','clamped')[idx]
+    x <- mean(sched$x[(((idx-1)*2)+1):(idx*2)])
+    y <- c(0.15, 1.15, -0.15, 0.15)[idx]
+    text(x,y,lab)
+    
+  }
+  
+  tickx <- unique(sched$x)
+  tickx[2:4] <- tickx[2:4]-1
+  
+  sched <- getPlotSchedule(group='young45', condition='gradual')
+  lines(sched$x[2:3],
+        sched$y[2:3],
+        col='black',lty=2)
+  
+  axis(1, at=tickx, cex.axis=0.8)
+  
+  dev.off()
+  
+  
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  
+  # get schedule for exp1:
+  y30dat <- getSelectedGroupsData(groups=c('young30'))
+  y30dat <- y30dat[['young30']][['abrupt']]
+  participants <- unique(y30dat$participant)
+  schedule <- y30dat$rotation_deg[which(y30dat$participant == participants[1])]
   
   # SMCL example data fit:
-  pars <- c('Ls'=0.073,
-            'Lf'=0.421,
-            'Rs'=0.998,
-            'Rf'=0.686)
+  pars <- c('Ls'=0.07305,
+            'Lf'=0.42132,
+            'Rs'=0.99859,
+            'Rf'=0.68611)
+  
+  fit <- twoRateModel(par=pars, schedule=schedule)
+  
+  ai <- which(style$condition == 'abrupt')
   
   
-
+  svglite(filename='doc/methods2_model_fit.svg',
+          width=7, height=3,
+          fix_text_size = FALSE)
+  
+  par(mar=c(4,3,0.1,0.1))
+  
+  sched <- getPlotSchedule(group='young30', condition='abrupt')
+  
+  plot(sched$x,
+       sched$y*30,
+       type='l',
+       xlim=c(0,165),ylim=30*c(-1.1,1.1),
+       main='',xlab='',ylab='',
+       col='black',lty=1,
+       bty='n',ax=F)
+  
+  lines(fit$total, lty=1, col=style$color_s[ai])
+  lines(fit$slow, lty=2, col=style$color_s[ai])
+  lines(fit$fast, lty=3, col=style$color_s[ai])
+  
+  legend(1,-5,legend=c('perturbation','total output','slow process','fast process'),col=c('#999999',rep(style$color_s[ai],3)),lty=c(1,1,2,3),bty='n')
+  
+  dev.off()
+  
 }
+
 
 # Convert Methods Figures -----
 
