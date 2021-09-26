@@ -1,12 +1,14 @@
 ---
 title: "Do small errors lead to more implicit motor adaptation?"
-output:
-  word_document: default
-  pdf_document: default
-  html_notebook: default
-bibliography: bibliography.bib
 csl: journal-of-vision.csl
 link-citations: yes
+output:
+  word_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+bibliography: bibliography.bib
 ---
 
 In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually leads to more implicit learning. In 5 groups of people, including a cohort of participants with mid cerebellar damage, and older participanrs (age-matched controls) doing various paradigms in within-subject designs, we still failed to confirm this.
@@ -118,7 +120,7 @@ Mostly, when comparing the two conditions (with ramped in purple and abrupt in o
 
 ## Order Effects
 
-However, before investigating any of these question, we need to make sure there is no order effect. Since these are all within-subject experiments, participants do both conditions, and it could be that first learning the rotation when it is ramped, might help learn it when introduced abruptly in the second session. We fit a simple asymptotic decoy model with two parameters: an asymptotic level of adaptation (N0) and a learning rate (lambda), which expresses how quickly the asymptotic level of adaptation is achieved. The models are fit on normalized reach deviations, so that they are all scaled between 0 and 1 (instead of between 0 and 30 or 0 and 60)  We can only get learning rates from the abrupt conditions, which means we can compare them between the participants who do abrupt first and those who did ramped first.
+However, before investigating any of these question, we need to make sure there is no order effect. Since these are all within-subject experiments, participants do both conditions, and it could be that first learning the rotation when it is ramped, might help learn it when introduced abruptly in the second session. We fit a simple asymptotic decay model with two parameters: an asymptotic level of adaptation (N0) and a learning rate (lambda), which expresses how quickly the asymptotic level of adaptation is achieved. The models are fit on normalized reach deviations, so that they are all scaled between 0 and 1 (instead of between 0 and 30 or 0 and 60)  We can only get learning rates from the abrupt conditions, which means we can compare them between the participants who do abrupt first and those who did ramped first.
 
 ```{r exp1_ordereffects}
 testOrderEffects(exp=1)
@@ -163,29 +165,25 @@ Now we also want to see if the two-rate model is different between the abrupt an
 plotExpModelFits(exp=1)
 ```
 
-## Quality of Fit (DOES IT MAKE SENSE TO KEEP THIS?)
+## Differences in fitted model parameters
 
-In the data from the 60 degree group, it could be that the bootstrapped fits from the abrupt condition, can not explain the gradual data  (MSE distribution on purple line) compared to how well the gradual fits explain the gradual data (yellow line). The difference is in the black line. Let's have a look at the 95% confidence intervals:
-
-```{r exp1_MSEs}
-crossConditionMSEs(exp=1)
-```
-
-Zero difference falls outside the confidence interval, so that we now look at the model parameter values to see if there is any difference in the parameter values:
+We now look at the model parameter values to see if there is any difference in the parameter values between ramped and abrupt conditions (Fig 5). We resample participants 1000 times, and fit the model to the average reach deviations in both the abrupt and gradual conditions. Dots are individual participants' parameters, density lines show distributions of parameter values. In the small inset, we see the distribution (density curve) and 95% confidence interval (purple shaded area). This can be compared to the 95% confidence interval of recovered parameters (gray shaded area). We see that the 95% confidence interval for the differences in parameter values includes the 95% confidence interval of recovered parameters in both groups, for all 4 parameters. This means there is no difference in fit parameter values.
 
 ```{r fig5, fig.width=7, fig.height=4, fig.cap="**Figure 5:** parameter differences..."}
 plotExpModelParameters(exp=1)
 ```
 
-The distributions of parameter values overlap very well, let's look at the confidence intervals of the differences:
+Here are the confidence intervals of the differences:
 
 ```{r parameterCIs}
 conditionParameterDiffs(exp=1)
 ```
 
-Zero is included in all confidence intervals, so that we can not conclude that parameters are different between the two conditions.
+Zero is included in all confidence intervals.
 
 **DO WE NEED THE PARAMETER RECOVERY CONFIDENCE INTERVALS AS WELL?**
+
+**Probably yes!**
 
 # Experiment 2: Mild Cerebellar Ataxia and Age
 
@@ -208,11 +206,11 @@ As before, this is a within-subject experiment (all participants do both the ram
 testOrderEffects(exp=2)
 ```
 
-There is no effect of group, no effect of order, and there is no interaction either. We can now combine the data and ignore task order in further analyses.
+Just as in the first experiment, there is no effect of group, no effect of order, and there is no interaction either. We can now combine the data and ignore task order in further analyses.
 
 ## Asymptotic adaptation and rebounds
 
-In the smaller graphs at the bottom of the figure above it becomes clearer that again it seem like there is no effect of group (mild cerebellar ataxia, age-matched controls or younger controls) nor any effect of condition (abrupt or ramped) on either the asymptotic level of adaptation in the first rotated phase or on the size of the rebound (reach deviations in the error-clamped phase).
+In the smaller graphs at the bottom of Figure 6, it again seems like there is no effect of group (mild cerebellar ataxia, age-matched controls or younger controls) nor any effect of condition (abrupt or ramped) on either the asymptotic level of adaptation in the first rotated phase or on the size of the rebound (reach deviations in the error-clamped phase).
 
 Let's check this with an ANOVA:
 
@@ -230,12 +228,13 @@ But, like we did in the rotation-size experiment, we want to see if there is act
 conditionBayesFactors(exp=2)
 ```
 
-For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis, but there is in the clamped block. What about the separate groups in exp 2?
+For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis (BF>1/3), but there is in the clamped block. What about the separate groups in exp 2?
+
 ```{r exp2_blockBF_bygroup}
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==2)])
 ```
 
-These evidence is less strong for each group, but notice that all Bayes Factors are below 1, so that more powerfull experiments (or larger data sets) would probably lower them. The combined data is fairly clear anyway.
+The evidence is (of course) less strong for each group, but notice that all Bayes Factors are below 1, so that more powerfull experiments (or larger data sets) would probably lower them. The combined data is fairly clear anyway.
 
 Of course, we can also combine all 5 groups across the two experiments:
 
@@ -256,27 +255,21 @@ For this experiment we also still want to test the two-rate model. First a figur
 plotExpModelFits(exp=2)
 ```
 
-**DO WE NEED THIS AT ALL:**
+We will now look at the parameter values themselves.
 
-Let's see the confidence interval of the cross-fit quality:
-
-```{r exp2_MSEs}
-crossConditionMSEs(exp=2)
-```
-
-So zero is not included in the 95% confidence interval in all groups, which means that model fits are not equivalent between conditions (the parameters from the abrupt condition do not predict the gradual condition as well as the parameters fit on the gradual data). This means we will look at the parameter values themselves.
-
-```{r exp2_parameter_values, fig.cap="**Figure 8:** model parameter values..."}
+```{r fig8, fig.cap="**Figure 8:** model parameter values..."}
 plotExpModelParameters(exp=2)
 ```
 
-The lines depict the distribution of bootstrapped parameters and the dots the parameter values for individual participants. We will check the confidence intervals of the differences in parameter values:
+The lines depict the distribution of bootstrapped parameters and the dots the parameter values for individual participants. The insets show distributions of differences (gradual - abrupt) as a (purple) density curve, and the corresponding 95% confidence interval as a shaded purple area. Again the gray bars are the 95% confidence intervals from the parameter recovery simulation. We can see that in the mild cerebellar ataxia group there is a difference in the fitted Ls and Lf parameters, and in the age-matched control group there is a differences in the fitted Lf parameter between abrupt and ramped conditions. The slow and fast learning parameters are higher in the ramped condition.
+
+We will check the confidence intervals of the differences in parameter values:
 
 ```{r parameter_CIs}
 conditionParameterDiffs(exp=2)
 ```
 
-In the two older groups (mild cerebellar ataxia, and their age-matched controls) the 95% confidence interval of differences in values of parameter `Lf` between abrupt and ramped conditions does not include zero. This shows that in the ramped condition, these groups have a higher learning rate for the fast process. However the slow process shows no differences. In the younger group, the parameters are also equivalent.
+In the two older groups (mild cerebellar ataxia, and their age-matched controls) the 95% confidence interval of differences in values of parameter `Lf` between abrupt and ramped conditions does not include zero. This shows that in the ramped condition, these groups have a higher learning rate for the fast process. However the slow process shows no differences. In the younger group, the fast learning parameters do show a small difference between the abrupt and ramped conditions, but the 95% confidence interval for this difference overlaps with the 95% confidence interval for that parameter from the parameter recovery simulation, so it is likely due to chance.
 
 # Conclusion
 
