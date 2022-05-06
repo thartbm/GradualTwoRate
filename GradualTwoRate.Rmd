@@ -294,4 +294,21 @@ So we take the stance that work using the two-rate model does show that multiple
 
 We expected to find different rebounds in abrupt and ramped conditions, which could then be explained by examining the model. However, behavioral performance between groups is equivalent, but still a few model parameters _are_ different between conditions in a few groups. If only our study would find these parameter differences in the fast process, that could be explained as a statistical fluke. However, we largely replicate earlier findings [@Coltman2021] with similar parameter differences. This confirms that, while model parameters are highly recoverable, two-rate model parameter values might not be informative about real differences between conditions or groups.
 
+```{r make_pdf_figures}
+target <- 'pdf'
+
+plotExpBehavior(exp=1, target=target, version=3)
+
+plotExpModelFits(exp=1, target=target)
+
+plotExpModelParameters(exp=1, target=target)
+
+plotExpBehavior(exp=2, target=target, version=3)
+
+plotExpModelFits(exp=2, target=target)
+
+plotExpModelParameters(exp=2, target=target)
+```
+
+
 # References
