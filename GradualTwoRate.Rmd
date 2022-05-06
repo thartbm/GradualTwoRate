@@ -50,14 +50,14 @@ source('R/statistics.R')
 The first thing to do is to download all the data. There is a function for this, which has some options, but by default it downloads all the data as 5 zip files (if not there) and unzips these.
 
 ```{r download-data}
-#downloadOSFdata()
+downloadOSFdata()
 ```
 
 Then we process the reaching data to get reach deviations for every trial. The function call below does all of this in a standardized manner across all 5 groups and makes sure the output format is the same for all 3 codebases, so we can run the same models and stats on all of them. All of this happens with functions in the `process.R` file. Feel free to try other ways to process the data, but make sure the output format remains the same - or be prepared to change lots of code down the road.
 
 Right now, the reach deviation at a quarter of the home-target distance is used as a cut-off point, using the first sample beyond this distance. There is built in functionality for other cut-off points, although we didn't test it on this data. For example, the first peak in the velocity profile could also be used (based on a smooth-spline interpolation), or a set distance in centimeters.
 
-```{r pre-process, eval=FALSE}
+```{r process, eval=FALSE}
 
 # each of these commands takes a while
 # since the standard output is already downloaded from OSF, this step is skipped
@@ -179,7 +179,7 @@ Here are the confidence intervals of the differences:
 conditionParameterDiffs(exp=1)
 ```
 
-Zero is included in all confidence intervals.
+Zero is included in all confidence intervals, which we interpret as no difference between the abrupt and gradual conditions in each of the rotations.
 
 **DO WE NEED THE PARAMETER RECOVERY CONFIDENCE INTERVALS AS WELL?**
 

@@ -130,7 +130,7 @@ getVersion <- function(exp=NULL, group=NULL) {
 # - does not remove any downloaded zip files
 # for now, the OSF repo is private, so you need a personal access token set in the OSF_PAT environment variable
 
-downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=FALSE) {
+downloadOSFdata <- function(groups=c(getInfo()$group,'processed'), overwrite=TRUE, removezip=FALSE) {
   
   if (overwrite) {
     conflicts = 'overwrite'
@@ -142,9 +142,7 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
   
   OSFnode <- osfr::osf_retrieve_node("c5ezv")
   
-  # get a list of files for the year and semester that is requested:
   files <- osfr::osf_ls_files(OSFnode)
-  
   print(files)
   
   for (group in groups) {
@@ -180,7 +178,7 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
       if (grepl('\\.zip$', filename)) {
         
         # then unzip it there:
-        unzip(file.path('data',files$name[idx]), exdir='data/')
+        unzip(file.path('data',files$name[idx]), exdir='data')
         
         # and remove the zip file, if that is wanted:
         if (removezip) {

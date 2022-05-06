@@ -150,6 +150,8 @@ getGroupFits <- function(exp=NULL, groups=NULL) {
   
   for (group in groups) {
     
+    cat(sprintf('fitting group: %s\n', group))
+    
     groupdata <- alldata[[group]]
     participants <- unique(groupdata[['abrupt']]$participant)
     
@@ -182,7 +184,7 @@ getGroupFits <- function(exp=NULL, groups=NULL) {
       }
       
       fits[['participant']] <- c(fits[['participant']], participant)
-      print(participant)
+      cat(sprintf('- participant %d done\n',participant))
     }
     
     for (condition in c('abrupt','gradual')) {
