@@ -138,7 +138,7 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
     conflicts = 'skip'
   }
   
-  osfr::osf_auth(Sys.getenv("OSF_PAT"))
+  #osfr::osf_auth(Sys.getenv("OSF_PAT"))
   
   OSFnode <- osfr::osf_retrieve_node("c5ezv")
   
@@ -162,15 +162,15 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
       # check that the file exists on OSF, and is unique:
       # if not: abort
       if (length(idx) > 1) {
-        # no unique file found: aborting this one
-        if (length(idx) == 0) {
-          return(FALSE)
-        }
         return(NULL)
+      }
+      # no unique file found: aborting this one
+      if (length(idx) == 0) {
+        return(FALSE)
       }
       
       # download the file:
-      if (!file.exists(sprintf('data/%s',files$name[idx])) | overwrite) {
+      if (!file.exists(file.path('data',files$name[idx])) | overwrite) {
         osfr::osf_download(x = files[idx,], 
                            path = 'data/', 
                            conflicts=conflicts)
@@ -180,11 +180,11 @@ downloadOSFdata <- function(groups=getInfo()$group, overwrite=FALSE, removezip=F
       if (grepl('\\.zip$', filename)) {
         
         # then unzip it there:
-        unzip(sprintf('data/%s',files$name[idx]), exdir='data/')
+        unzip(file.path('data',files$name[idx]), exdir='data/')
         
         # and remove the zip file, if that is wanted:
         if (removezip) {
-          file.remove(sprintf('data/%s',files$name[idx]))
+          file.remove(file.path('data',files$name[idx]))
         }
         
       }
