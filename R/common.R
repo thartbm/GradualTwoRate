@@ -384,6 +384,38 @@ selectParticipants <- function(df, rotation) {
   
 }
 
+getGoodGroupParticipants <- function(group) {
+  
+  info <- getInfo()
+  rotation <- info$rotation[which(info$group == group)]
+  
+  gradual_pp <- unique(selectParticipants(df=read.csv(sprintf('data/%s/%s_gradual.csv',group,group), stringsAsFactors = FALSE), rotation)$participant)
+  abrupt_pp <- unique(selectParticipants(df=read.csv(sprintf('data/%s/%s_abrupt.csv',group,group), stringsAsFactors = FALSE), rotation)$participant)
+  
+  goodParticipants <- intersect(gradual_pp, abrupt_pp)
+  
+  return(goodParticipants)
+}
+
+showGoodParticipants <- function() {
+  
+  info <- getInfo()
+  
+  group <- c()
+  all_pp <- c()
+  good_pp <- c()
+  
+  for (group_name in info$group) {
+    
+    group <- c(group, group_name)
+    all_pp <- c(all_pp, length(getGroupParticipants(group=group_name)))
+    good_pp <- c(good_pp, length(getGoodGroupParticipants(group=group_name)))
+    
+  }
+  
+  return(data.frame(group,all_pp,good_pp))
+  
+}
 
 
 # data parsing -----
