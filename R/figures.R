@@ -366,7 +366,7 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
     fh_i <- 2.5*(length(groups)+1)
   }
   if (version == 3) {
-    fw_i <- 4
+    fw_i <- 6
     fh_i <- 7.5
   }
   
@@ -394,9 +394,11 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
     layout( mat=matrix(data=m, nrow=ngroups+1, byrow=TRUE ) )
   }
   
-  par(mar=c(4,3,1,0.2))
+  par(mar=c(4.5,4,1,0.2))
   
-  for (group in names(data)) {
+  for (group_no in c(1:length(names(data)))) {
+    
+    group <- names(data)[group_no]
     
     group_idx <- which(info$group == group)
     rotation <- info$rotation[group_idx]
@@ -428,6 +430,8 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
              ylim=ylimits+(c(-0.1,0.1)*rotation),
              bty='n',
              ax=F)
+        title(xlab='trial', line=2.25)
+        title(ylab='reach deviation [°]', line=2.5)
         # add abrupt schedule to figure?
         plotschedule <- getPlotSchedule(group=group, condition=condition)
         lines(x=plotschedule$x[1:7], 
@@ -456,6 +460,14 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
       
       if (version %in% c(1,3) & condition=='gradual') {
         # skip making a new panel
+        if (group_no == 1) {
+          legend( x = c(  0, 180)[exp],
+                  y = c( 30,  45)[exp],
+                  legend = c('abrupt','gradual'),
+                  bty='n',
+                  lty=1,
+                  col=style$color_s)
+        }
       } else {
         axis(side=1, at=c(1,ntrials))
         axis(side=2, at=c(0,ylimits))
@@ -467,9 +479,12 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
     
     plot(-1000,-1000,
          main='',xlab='',ylab='',
-         xlim=c(0,(3*length(blocks))+1),
+         xlim=c(0.5,(3*length(blocks))+0.5),
          ylim=c(c(-0.1,1.1)*rotation),
          bty='n', ax=F)
+    title(xlab='block', line=2.25)
+    title(ylab='reach deviation [°]', line=2.5)
+    title(main=group_label, font.main=2, cex.main=1.2)
     
     for (blockno in c(1:length(blocks))) {
       
@@ -534,7 +549,7 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
     fh_i <- 7.5
   }
   if (version == 4) {
-    fh_i <- 2.5 * (length(groups))
+    fh_i <- 3 * (length(groups))
   }
   
   if (target=='pdf') {
@@ -566,9 +581,11 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
                          byrow=TRUE) )
   }
   
-  par(mar=c(4,3,1,0.2))
+  par(mar=c(4.5,4,1,0.2))
   
-  for (group in names(data)) {
+  for (group_no in c(1:length(names(data)))) {
+    
+    group <- names(data)[group_no]
     
     fits <- read.csv(sprintf('data/%s/twoRateFits.csv',group), stringsAsFactors = FALSE)
     
@@ -602,6 +619,8 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
               y=plotschedule$y[2:3]*rotation,
               lty=1,
               col='#999999')
+        title(xlab='trial', line=2.25)
+        title(ylab='reach deviation [°]', line=2.5)
       } else {
         plot(-1000,-1000,
              main=group_label,xlab='',ylab='',
@@ -650,6 +669,23 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
       
       if (version %in% c(1,3,4) & condition=='gradual') {
         # skip making a new panel
+        if (group_no == 1) {
+          legend( x = c(  0, 180)[exp],
+                  y = c( 30,  45)[exp],
+                  legend = c('abrupt','gradual'),
+                  bty='n',
+                  lty=1,
+                  col=style$color_s,
+                  cex = c(0.8, 1.2)[exp] )
+          legend( x = c(  0,   0)[exp],
+                  y = c(-10,  45)[exp],
+                  legend = c('slow','fast','total'),
+                  bty='n',
+                  lty=c(2,3,1),
+                  col='#999999',
+                  cex = c(0.8, 1.2)[exp] )
+          
+        }
       } else {
         axis(side=1, at=c(1,ntrials))
         axis(side=2, at=c(0,ylimits))
@@ -749,12 +785,14 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
     layout( mat=matrix(data=c(1:(ngroups*4)), nrow = ngroups, ncol=4, byrow = TRUE) )
   }
 
-  par(mar=c(3.5,4,1,0.25))
+  par(mar=c(3.5,2,1,0.25))
   
   inset.figs <- list()
   inset.fig.idx <- 1
   
-  for (group in groups) {
+  for (group_no in c(1:length(groups))) {
+    
+    group <- groups[group_no]
     
     group_idx <- which(info$group == group)
     group_label <- info$label[group_idx]
@@ -780,9 +818,6 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
       if (group == groups[1]) {
         main <- parameter
       }
-      if (parameter == 'Ls') {
-        ylab <- info$label[which(info$group == group)]
-      }
 
       plot(-1000,-1000,
            main=main,xlab=xlab,ylab=ylab,
@@ -790,6 +825,9 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
            ylim=ylims,
            bty='n',
            ax=F)
+      if (parameter == 'Ls') {
+        title( ylab = info$label[which(info$group == group)], line=1 )
+      }
       
       groupfits <- read.csv(sprintf('data/%s/twoRateFits.csv',group), stringsAsFactors=TRUE)
       
@@ -819,10 +857,23 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
       
       axis(side=1,at=c(0,1))
       
+      if (group_no == 1 & parameter == 'Ls') {
+        legend( x = 0.55,
+                y = 18,
+                legend = c('abrupt','gradual'),
+                lty = 1, bty='n', cex=0.8,
+                col=style$color_s)
+      }
+      
+      if (group_no == length(groups)) {
+        title(xlab = 'parameter value', line=2)
+      }
+      
+      
       inset.figs[[inset.fig.idx]] <- c(grconvertX(p[1:2], from="npc", to="ndc"),
                                        grconvertY(p[3:4], from="npc", to="ndc"))
       inset.fig.idx <- inset.fig.idx + 1
-
+      
     }
 
   }
