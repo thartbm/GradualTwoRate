@@ -12,7 +12,7 @@ initialPerturbationSVGs <- function() {
   # 2 workspaces with:
   # targets + rotated reaches?
   
-  # whata size is each workspace?? 4:3? sure
+  # what size is each workspace?? 4:3? sure
   svglite(filename='doc/methods1_exp1_workspace.svg',
           width=4, height=3,
           bg="#999999",
@@ -22,6 +22,10 @@ initialPerturbationSVGs <- function() {
   
   home_target_distance = 10.5
   cursor_radius = 0.72/2 # scaled screen so it matches real tablet size
+  
+  # just make it all look the same:
+  home_target_distance = 12
+  cursor_radius = 1/2
   rotations <- (c(60,30,-30,-60)/180)*pi
   
   plot(-1000,-1000,
@@ -37,7 +41,7 @@ initialPerturbationSVGs <- function() {
   
   for (t_idx in c(1:5)) {
     
-    if (t_idx == 2) {
+    if (t_idx == 4) {
       polygon(x=(dot$x*cursor_radius)+targetx[t_idx],
               y=(dot$y*cursor_radius)+targety[t_idx],
               border=NA,
@@ -59,7 +63,7 @@ initialPerturbationSVGs <- function() {
   }
   
   
-  rot_target <- mean(target_rads[3:4])
+  rot_target <- target_rads[3]
   lines(x = cos(rot_target)*(c(0.1,0.9)*home_target_distance),
         y = sin(rot_target)*(c(0.1,0.9)*home_target_distance),
         col='#FF0000')
@@ -109,7 +113,7 @@ initialPerturbationSVGs <- function() {
   
   for (t_idx in c(1:5)) {
     
-    if (t_idx == 2) {
+    if (t_idx == 4) {
       polygon(x=(dot$x*cursor_radius)+targetx[t_idx],
               y=(dot$y*cursor_radius)+targety[t_idx],
               border=NA,
