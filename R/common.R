@@ -10,7 +10,7 @@ getInfo <- function() {
   
   group      <- c(   'young30',    'young60',               'mcebat45',  'older45',    'young45')
   
-  label      <- c('younger 30', 'younger 60', 'mild cerebellar ataxia', 'older 45', 'younger 45')
+  label      <- c('younger 30°', 'younger 60°', 'mild cerebellar ataxia', 'older 45°', 'younger 45°')
   
   rotation   <- c(          30,           60,                       45,         45,           45)
   
