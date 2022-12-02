@@ -17,7 +17,9 @@ The data for this project is available from OSF: [https://osf.io/c5ezv](https://
 
 When re-doing the analyses below, it is recommended to use the same version of R we used to write the code: 4.0.5. This document explains how to do this with RStudio on 3 main operating systems: [Changing R veriosn](https://support.posit.co/hc/en-us/articles/200486138-Changing-R-versions-for-the-RStudio-Desktop-IDE)
 
-This RStudio Project also uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. This probably took some time when starting this up. It also means that all those packages are installed in the project folder, so after being done with the project, you might want to free up some disk space by removing it.
+This RStudio Project also uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. Setting up the `renv` probably took some time when starting this up. If it didn't, type `renv::restore()` to try again. Once successful, all those packages are installed in the project folder.
+
+This could take up disk space (>240MB on my laptop), so after being done with the project, you might want to remove it.
 
 Then we access all our custom functions:
 
