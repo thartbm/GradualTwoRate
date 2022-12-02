@@ -3,19 +3,21 @@ title: "Do small errors lead to more implicit motor adaptation?"
 csl: journal-of-vision.csl
 link-citations: yes
 output:
-  word_document: default
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
+  word_document: default
   pdf_document: default
 bibliography: bibliography.bib
 ---
 
-In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually leads to more implicit learning. In 5 groups of people, including a cohort of participants with mid cerebellar damage, and older participanrs (age-matched controls) doing various paradigms in within-subject designs, we still failed to confirm this.
+In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually; by a very small increment on every trial, rather than abruptly; all at once, leads to more implicit learning. In 5 groups of people, including a cohort of participants with mild cerebellar ataxia, and older participants (age-matched controls) performing both gradual and abrupt visuomotor adaptation in within-subject designs, we still failed to confirm this.
 
-The data for this project is available from OSF.
+The data for this project is available from OSF: [https://osf.io/c5ezv](https://osf.io/c5ezv).
 
-This RStudio Project uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. This probably took some time when starting this up. It also means that all those packages are installed in the project folder, so after being done with the project, you might want to free up some disk space by removing it.
+When re-doing the analyses below, it is recommended to use the same version of R we used to write the code: 4.0.5. This document explains how to do this with RStudio on 3 main operating systems: [Changing R veriosn](https://support.posit.co/hc/en-us/articles/200486138-Changing-R-versions-for-the-RStudio-Desktop-IDE)
+
+This RStudio Project also uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. This probably took some time when starting this up. It also means that all those packages are installed in the project folder, so after being done with the project, you might want to free up some disk space by removing it.
 
 Then we access all our custom functions:
 
@@ -50,7 +52,7 @@ source('R/statistics.R')
 The first thing to do is to download all the data. There is a function for this, which has some options, but by default it downloads all the data as 5 zip files (if not there) and unzips these.
 
 ```{r download-data}
-downloadOSFdata()
+#downloadOSFdata()
 ```
 
 Then we process the reaching data to get reach deviations for every trial. The function call below does all of this in a standardized manner across all 5 groups and makes sure the output format is the same for all 3 codebases, so we can run the same models and stats on all of them. All of this happens with functions in the `process.R` file. Feel free to try other ways to process the data, but make sure the output format remains the same - or be prepared to change lots of code down the road.
@@ -140,13 +142,13 @@ Not surprisingly, there is an effect of block (rotated or clamped) and as we sus
 
 ## Equivalance of conditions
 
-We take this one step further and test, if --across the whole experiment-- the difference between reach deviations in the abrupt and ramped conditions (separate for each block) may even support the null hypothesis. To do this we run a simple Bayesian analysis:
+We take this one step further and test, if --across the whole experiment-- the data (reach deviations in the abrupt and ramped conditions, tested separately for each block) may even support the null hypothesis, given the standard non-informative prior. To do this we run a simple Bayesian analysis:
 
 ```{r exp1_blockBF_overall}
 conditionBayesFactors(exp=1)
 ```
 
-Both using the data from the rotated block (BF=0.2017), and from the clamped block (BF=0.1807), there is moderate support for the null hypothesis.
+Both using the data from the rotated block ($BF_{10}=0.2017$), and from the clamped block ($BF_{10}=0.1807$), there is moderate support for the null hypothesis.
 
 Split by group, we get these numbers:
 
@@ -155,7 +157,7 @@ Split by group, we get these numbers:
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==1)])
 ```
 
-All of these are below 1/3, so each condition provides moderate support for the null-hypothesis: there is no difference in asymptotic adaptation or rebound depending on how the rotation is introduced. Since there is no difference in asymptotic adaptation, the absence of any difference in rebounds means there is no effect of how the rotation is introduced (abrupt or ramped) on implicit adaptation.
+All of these are below 1/3, so each condition provides moderate support for the null-hypothesis: there is no difference in asymptotic adaptation or rebound depending on how the rotation is introduced. Since there is no difference in asymptotic adaptation, the absence of any difference in rebounds could mean there is no effect of how the rotation is introduced (abrupt or ramped) on implicit adaptation.
 
 ## Model fits
 
@@ -167,7 +169,7 @@ plotExpModelFits(exp=1)
 
 ## Differences in fitted model parameters
 
-We now look at the model parameter values to see if there is any difference in the parameter values between ramped and abrupt conditions (Fig 5). We resample participants 1000 times, and fit the model to the average reach deviations in both the abrupt and gradual conditions. Dots are individual participants' parameters, density lines show distributions of parameter values. In the small inset, we see the distribution (density curve) and 95% confidence interval (purple shaded area). This can be compared to the 95% confidence interval of recovered parameters (gray shaded area). We see that the 95% confidence interval for the differences in parameter values includes the 95% confidence interval of recovered parameters in both groups, for all 4 parameters. This means there is no difference in fit parameter values.
+We now look at the model parameter values to see if there is any difference in the parameter values between ramped and abrupt conditions (Fig 5). We resample across participants 1000 times, and fit the model to the average reach deviations in both the abrupt and gradual conditions. The density lines show distributions of parameter values with this method. For illustration purposes, individual participants' parameters are shown with dots below the density lines. In each small inset, we see the distribution (density curve) and 95% confidence interval (purple shaded area). This can be compared to the 95% confidence interval of recovered parameters (gray shaded area). We see that the 95% confidence interval for the differences in parameter values includes the 95% confidence interval of recovered parameters in both groups, for all 4 parameters. We conclude there is no difference in fit parameter values.
 
 ```{r fig5, fig.width=7, fig.height=4, fig.cap="**Figure 5:** parameter differences..."}
 plotExpModelParameters(exp=1)
@@ -179,11 +181,7 @@ Here are the confidence intervals of the differences:
 conditionParameterDiffs(exp=1)
 ```
 
-Zero is included in all confidence intervals, which we interpret as no difference between the abrupt and gradual conditions in each of the rotations.
-
-**DO WE NEED THE PARAMETER RECOVERY CONFIDENCE INTERVALS AS WELL?**
-
-**Probably yes!**
+We can see each confidence interval includes 0. In the figure however, we compare these confidence intervals with those obtained from a parameter recovery simulation, that assesses the _range_ of values where a difference can be due to noise. That is: if the confidence interval of the parameter differences does not include zero, but does overlap with tha confidence interval from the parameter recovery simulation, the difference can still be due to chance.
 
 # Experiment 2: Mild Cerebellar Ataxia and Age
 
@@ -200,7 +198,7 @@ Notice again that instead of a counter rotation (which would lead to errors clos
 
 ## Order effects
 
-As before, this is a within-subject experiment (all participants do both the ramped and the abrupt condition), and we want to make sure there is no order effect.
+As before, this is a within-subject experiment: all participants do both the ramped and the abrupt condition, in a randomized order, and with opposing rotations. We first want to make sure there is no order effect in this experiment either.
 
 ```{r exp2_ordereffects}
 testOrderEffects(exp=2)
@@ -228,13 +226,13 @@ But, like we did in the rotation-size experiment, we want to see if there is act
 conditionBayesFactors(exp=2)
 ```
 
-For reach deviations in the rotated block, across all three groups in the MCEBAT experiment, there is no real support for the null hypothesis (BF>1/3), but there is in the clamped block. What about the separate groups in exp 2?
+For reach deviations in the rotated block, across all three groups in the second experiment, there is no real support for the null hypothesis ($BF_{10}=0.39>1/3$), but there is in the clamped block ($BF_{10}=0.14$). What about the separate groups in exp 2?
 
 ```{r exp2_blockBF_bygroup}
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==2)])
 ```
 
-The evidence is (of course) less strong for each group, but notice that all Bayes Factors are below 1, so that more powerfull experiments (or larger data sets) would probably lower them. The combined data is fairly clear anyway.
+The evidence is (of course) less strong for each group, but notice that all Bayes Factors are below 1, so that more powerfull experiments (or larger data sets) would provide better evidence. The combined data is still fairly clear.
 
 Of course, we can also combine all 5 groups across the two experiments:
 
@@ -269,7 +267,7 @@ We will check the confidence intervals of the differences in parameter values:
 conditionParameterDiffs(exp=2)
 ```
 
-In the two older groups (mild cerebellar ataxia, and their age-matched controls) the 95% confidence interval of differences in values of parameter `Lf` between abrupt and ramped conditions does not include zero. This shows that in the ramped condition, these groups have a higher learning rate for the fast process. However the slow process shows no differences. In the younger group, the fast learning parameters do show a small difference between the abrupt and ramped conditions, but the 95% confidence interval for this difference overlaps with the 95% confidence interval for that parameter from the parameter recovery simulation, so it is likely due to chance.
+In the two older groups (mild cerebellar ataxia, and their age-matched controls) the 95% confidence interval of differences in values of parameter `Lf` between abrupt and ramped conditions does not include zero. This shows that in the ramped condition, these groups have a higher learning rate for the fast process. In the mild cerebellar ataxia group, the learning rate of the slow process `Ls` also shows a difference between the conditions. In the younger group, the fast learning parameters do show a small difference between the abrupt and ramped conditions, but the 95% confidence interval for this difference overlaps with the 95% confidence interval for that parameter from the parameter recovery simulation, so it is likely due to chance.
 
 # Conclusion
 
