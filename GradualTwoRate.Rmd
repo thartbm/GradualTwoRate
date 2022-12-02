@@ -1,5 +1,5 @@
 ---
-title: "Do small errors lead to more implicit motor adaptation?"
+title: "Do small, incremental errors lead to more implicit motor adaptation than one large one?"
 csl: journal-of-vision.csl
 link-citations: yes
 output:
