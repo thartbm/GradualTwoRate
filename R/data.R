@@ -466,7 +466,7 @@ standardNames <- function(df) {
 }
 
 
-downloadOSFdata <- function(groups=c('young30', 'young60', 'mcebat45', 'older45', 'young45'), overwrite=FALSE, removezip=FALSE) {
+downloadOSFdata <- function(groups=c('young30', 'young60', 'mcebat45', 'older45', 'young45', 'processed'), overwrite=FALSE, removezip=FALSE) {
   
   if (overwrite) {
     conflicts = 'overwrite'
