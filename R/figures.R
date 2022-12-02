@@ -846,9 +846,9 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
         colname <- sprintf('%s.%s',condition,parameter)
         parvals <- as.numeric(unlist(fits[colname]))
         
-        X <- seq(0,1,length.out = 101)
+        X <- seq(0,1,length.out = 201)
         Y <- density(parvals,
-                     n=101,from=0,to=1,
+                     n=201,from=0,to=1,
                      na.rm=T,kernel='gaussian',width=0.05)$y
         
         lines(X,Y,col=as.character(style$color_s[cond_idx]))
