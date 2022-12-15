@@ -376,6 +376,12 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
   if (target=='pdf') {
     pdf(file=sprintf('doc/Fig%d.pdf',(exp*3)-1), width=fw_i, height=fh_i)
   }
+  if (target=='png') {
+    png(filename=sprintf('doc/Fig%d.png',(exp*3)-1), 
+        width=fw_i, height=fh_i, units="in",
+        res=200,
+        type="cairo")
+  }
   
   data <- getSelectedGroupsData(groups=groups)
   
@@ -487,7 +493,7 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
          bty='n', ax=F)
     title(xlab='block', line=2.25)
     title(ylab='reach deviation [°]', line=2.5)
-    title(main=group_label, font.main=2, cex.main=1.2)
+    title(main=group_label, font.main=1.8, cex.main=1.2)
     
     for (blockno in c(1:length(blocks))) {
       
@@ -525,7 +531,7 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
     
   }
   
-  if (target %in% c('pdf')) {
+  if (target %in% c('pdf','png')) {
     dev.off()
   }
   
@@ -558,6 +564,14 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
   if (target=='pdf') {
     pdf(file=sprintf('doc/Fig%d.pdf',0+(exp*3)), width=fw_i, height=fh_i)
   }
+  if (target=='png') {
+    png(filename=sprintf('doc/Fig%d.png',0+(exp*3)), 
+        width=fw_i, height=fh_i, units="in",
+        pointsize=12,
+        res=250,
+        type="cairo")
+  }
+  
   
   data <- getSelectedGroupsData(groups=groups)
   
@@ -759,7 +773,7 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
     
   }
   
-  if (target %in% c('pdf')) {
+  if (target %in% c('pdf','png')) {
     dev.off()
   }
   
@@ -781,6 +795,13 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
   if (target=='pdf') {
     pdf(file=sprintf('doc/Fig%d.pdf',1+(exp*3)), width=fw_i, height=fh_i)
   }
+  if (target=='png') {
+    png(filename=sprintf('doc/Fig%d.png',1+(exp*3)), 
+        width=fw_i, height=fh_i, units="in",
+        res=200,
+        type="cairo")
+  }
+  
   
   ngroups = length(groups)
   
