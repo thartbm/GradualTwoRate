@@ -133,7 +133,7 @@ initialPerturbationSVGs <- function() {
          sprintf('%d°',td))
   }
   
-  rot_target <- mean(target_rads[3:4])
+  rot_target <- target_rads[3]
   lines(x = cos(rot_target)*(c(0.1,0.9)*home_target_distance),
         y = sin(rot_target)*(c(0.1,0.9)*home_target_distance),
         col='#FF0000')
@@ -204,6 +204,7 @@ initialScheduleModelSVGs <- function() {
   
   
   axis(1, at=tickx, cex.axis=0.8)
+  axis(2, at=c(-1,0,1), labels = c('± 30°/60°', '0°', '± 30°/60°'), cex.axis=0.8)
   
   dev.off()
   
@@ -248,6 +249,8 @@ initialScheduleModelSVGs <- function() {
         col='black',lty=2)
   
   axis(1, at=tickx, cex.axis=0.8)
+  axis(2, at=c(0,1), labels = c('0°', '± 45°'), cex.axis=0.8)
+  
   
   dev.off()
   
@@ -371,7 +374,7 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
   }
   
   if (target=='pdf') {
-    pdf(file=sprintf('doc/Fig%d.pdf',0+(exp*3)), width=fw_i, height=fh_i)
+    pdf(file=sprintf('doc/Fig%d.pdf',(exp*3)-1), width=fw_i, height=fh_i)
   }
   
   data <- getSelectedGroupsData(groups=groups)
@@ -553,7 +556,7 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
   }
   
   if (target=='pdf') {
-    pdf(file=sprintf('doc/Fig%d.pdf',1+(exp*3)), width=fw_i, height=fh_i)
+    pdf(file=sprintf('doc/Fig%d.pdf',0+(exp*3)), width=fw_i, height=fh_i)
   }
   
   data <- getSelectedGroupsData(groups=groups)
@@ -776,7 +779,7 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
   }
 
   if (target=='pdf') {
-    pdf(file=sprintf('doc/Fig%d.pdf',2+(exp*3)), width=fw_i, height=fh_i)
+    pdf(file=sprintf('doc/Fig%d.pdf',1+(exp*3)), width=fw_i, height=fh_i)
   }
   
   ngroups = length(groups)
