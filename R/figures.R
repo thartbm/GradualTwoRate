@@ -382,6 +382,11 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
         res=200,
         type="cairo")
   }
+  if (target == 'svg') {
+    svglite::svglite( sprintf('doc/Fig%d.svg', (exp*3)-1),
+                      width=fw_i, height=fh_i,
+                      fix_text_size = FALSE)
+  }
   
   data <- getSelectedGroupsData(groups=groups)
   
@@ -531,7 +536,7 @@ plotExpBehavior <- function(target='inline', exp, version=3) {
     
   }
   
-  if (target %in% c('pdf','png')) {
+  if (target %in% c('pdf','png','svg')) {
     dev.off()
   }
   
@@ -570,6 +575,11 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
         pointsize=12,
         res=250,
         type="cairo")
+  }
+  if (target=='svg') {
+    svglite::svglite( filename = sprintf('doc/Fig%d.svg',0+(exp*3)),
+                      width = fw_i, height = fh_i,
+                      fix_text_size = FALSE)
   }
   
   
@@ -773,7 +783,7 @@ plotExpModelFits <- function(target='inline', exp, version=4) {
     
   }
   
-  if (target %in% c('pdf','png')) {
+  if (target %in% c('pdf','png','svg')) {
     dev.off()
   }
   
@@ -801,6 +811,12 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
         res=200,
         type="cairo")
   }
+  if (target=='svg') {
+    svglite::svglite( filename = sprintf('doc/Fig%d.svg',1+(exp*3)),
+                      width = fw_i, height = fh_i,
+                      fix_text_size = FALSE)
+  }
+  
   
   
   ngroups = length(groups)
@@ -976,7 +992,7 @@ plotExpModelParameters <- function(target='inline', exp, version=1) {
     }
   }
   
-  if (target %in% c('pdf')) {
+  if (target %in% c('pdf','svg','png')) {
     dev.off()
   }
   
