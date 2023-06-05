@@ -3,27 +3,32 @@ title: "Do small, incremental errors lead to more implicit motor adaptation than
 csl: journal-of-vision.csl
 link-citations: yes
 output:
-  word_document: default
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
+  word_document: default
   pdf_document: default
 bibliography: bibliography.bib
+date: "2023-06-05"
 ---
 
-In this document we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually; by a very small increment on every trial, rather than abruptly; all at once, leads to more implicit learning. In 5 groups of people, including a cohort of participants with mild cerebellar ataxia, and older participants (age-matched controls) performing both gradual and abrupt visuomotor adaptation in within-subject designs, we still failed to confirm this.
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+Here we pre-process and analyze data and make figures for a project where we test the common assumption that introducing a visuomotor perturbation gradually; by a very small increment on every trial, rather than abruptly; all at once, leads to more implicit learning. In 5 groups of people, including a cohort of participants with mild cerebellar ataxia, and older participants (age-matched controls) performing both gradual and abrupt visuomotor adaptation in within-subject designs, we still failed to confirm this.
 
 The data for this project is available from OSF: [https://osf.io/c5ezv](https://osf.io/c5ezv).
 
-When re-doing the analyses below, it is recommended to use the same version of R we used to write the code: 4.0.5. This document explains how to do this with RStudio on 3 main operating systems: [Changing R veriosn](https://support.posit.co/hc/en-us/articles/200486138-Changing-R-versions-for-the-RStudio-Desktop-IDE)
+When re-doing the analyses below, it is recommended to use the same version of R we used to write the code: 4.1.2. This document explains how to do this with RStudio on 3 main operating systems: [Changing R veriosn](https://support.posit.co/hc/en-us/articles/200486138-Changing-R-versions-for-the-RStudio-Desktop-IDE)
 
-This RStudio Project also uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. Setting up the `renv` probably took some time when starting this up. If it didn't, type `renv::restore()` to try again. Once successful, all those packages are installed in the project folder.
+This RStudio Project also uses `renv` in an attempt to make sure the same (versions of) packages are used here as we used when we originally wrote the scripts. Setting up the `renv` probably took some time when starting this up. If it didn't, type `renv::restore()` to try again. It will give hints on how to solve problems. Once successful, all those packages are installed in the local project folder called `renv`.
 
-This could take up disk space (>240MB on my laptop), so after being done with the project, you might want to remove it.
+This could take up disk space (>400MB on my laptop), so after being done with the project, you might want to remove it.
 
 Then we access all our custom functions:
 
-```{r setup, echo=FALSE}
+```{r localsources, echo=FALSE}
 # has some functions to process the raw data to get it all into a shared format ready for OSF:
 
 # this collected the data, and partially unified variables/format:
@@ -54,7 +59,7 @@ source('R/statistics.R')
 The first thing to do is to download all the data. There is a function for this, which has some options, but by default it downloads all the data as 5 zip files (if not there) and unzips these.
 
 ```{r download-data}
-#downloadOSFdata()
+downloadOSFdata()
 ```
 
 Then we process the reaching data to get reach deviations for every trial. The function call below does all of this in a standardized manner across all 5 groups and makes sure the output format is the same for all 3 codebases, so we can run the same models and stats on all of them. All of this happens with functions in the `process.R` file. Feel free to try other ways to process the data, but make sure the output format remains the same - or be prepared to change lots of code down the road.
@@ -73,7 +78,7 @@ Right now, the reach deviation at a quarter of the home-target distance is used 
 #getGroupFits(groups=getInfo()$group)
 
 # bootstrap two-rate model fit parameter values by resampling participants within each group 1000 times: 
-#bootstrapFits(groups=getInfo()$group)
+# bootstrapFits(groups=getInfo()$group)
 
 # calculate fit quality for the bootstrapped parameter fits:
 #modelMSEs(groups=getInfo()$group)
@@ -159,7 +164,7 @@ Split by group, we get these numbers:
 conditionBayesFactors(groups=getInfo()$group[which(getInfo()$experiment==1)])
 ```
 
-All of these are below 1/3, so each condition provides moderate support for the null-hypothesis: there is no difference in asymptotic adaptation or rebound depending on how the rotation is introduced. Since there is no difference in asymptotic adaptation, the absence of any difference in rebounds could mean there is no effect of how the rotation is introduced (abrupt or ramped) on implicit adaptation.
+All of these are below 1/3 (and above 1/10), so each condition provides moderate support for the null-hypothesis: there is no difference in asymptotic adaptation or rebound depending on how the rotation is introduced. Since there is no difference in asymptotic adaptation, the absence of any difference in rebounds could mean there is no effect of how the rotation is introduced (abrupt or ramped) on implicit adaptation.
 
 ## Model fits
 
@@ -183,14 +188,13 @@ Here are the confidence intervals of the differences:
 conditionParameterDiffs(exp=1)
 ```
 
-We can see each confidence interval includes 0. In the figure however, we compare these confidence intervals with those obtained from a parameter recovery simulation, that assesses the _range_ of values where a difference can be due to noise. That is: if the confidence interval of the parameter differences does not include zero, but does overlap with tha confidence interval from the parameter recovery simulation, the difference can still be due to chance.
+We can see each confidence interval includes 0. In the figure however, we compare these confidence intervals with those obtained from a parameter recovery simulation, that assesses the _range_ of values where a difference can be due to noise. That is: if the confidence interval of the parameter differences does _not_ include zero, but _does_ overlap with the confidence interval from the parameter recovery simulation, the difference can still be due to chance.
 
 # Experiment 2: Mild Cerebellar Ataxia and Age
 
 If the cerebellum implements the majority of implicit adaptation, then people with lesions in the cerebellum should rely more on explicit adaptation compared to age-matched control. If older adults (can) rely less on cognitive capacities (because of age-related cognitive decline) then they should rely more on implicit adaptation compared to younger adaults. Here we test a population with mild cerebellar ataxia. Since most people with cerebellar ataxia are older, we also compare their age-matched controls with younger adults.
 
 Let's have a look at the data:
-
 
 ```{r fig6, fig.width=4, fig.height=7, fig.cap="**Figure 6:** reach deviations..."}
 plotExpBehavior(exp=2, target='inline', version=3)
