@@ -5,7 +5,7 @@ require('BayesFactor')
 
 # order effects -----
 
-testOrderEffects <- function(exp=NULL, groups=NULL) {
+testOrderEffects <- function(exp=NULL, groups=NULL, dv='lambda') {
 
   if (is.null(groups)) {
     # we need to know the groups in the experiment:
@@ -34,7 +34,7 @@ testOrderEffects <- function(exp=NULL, groups=NULL) {
     # do group ANOVA on group data:
 
     g_aov <- afex::aov_ez(id = "participant",
-                          dv = "lambda",
+                          dv = dv,
                           data = g_df,
                           between = c("first_condition"),
                           type = 3,
@@ -56,7 +56,7 @@ testOrderEffects <- function(exp=NULL, groups=NULL) {
   # do ANOVA on all groups:
   if (!is.null(exp)) {
     e_aov <- afex::aov_ez(id = "participant",
-                          dv = "lambda",
+                          dv = dv,
                           data = df,
                           between = c("group","first_condition"),
                           type = 3 )
